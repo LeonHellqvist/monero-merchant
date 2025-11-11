@@ -34,7 +34,7 @@ fun CurrencyConverterCard(
     color: Color = MaterialTheme.colorScheme.primary
 ) {
     Surface(
-        color = color,
+
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -47,7 +47,7 @@ fun CurrencyConverterCard(
                 verticalArrangement = Arrangement.SpaceBetween,
             ){
                 if (currency != "") {
-                    Text(text = currency, fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
+                    Text(text = currency, style = MaterialTheme.typography.labelSmall)
                 } else {
                     LinearProgressIndicator(
                         modifier = Modifier.width(48.dp).padding(vertical = 7.5.dp)
@@ -57,8 +57,8 @@ fun CurrencyConverterCard(
                 if (exchangeRate != null) {
                     Text(
                         text = "1 XMR = $exchangeRate $currency",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f)
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
                     )
                 } else {
                     LinearProgressIndicator(
@@ -79,8 +79,8 @@ fun CurrencyConverterCard(
 
                     if (xmrAmount != null) {
                         val fiatAmount = xmrAmount.multiply(rate).setScale(3, RoundingMode.HALF_UP)
-                        Text(text = "${fiatAmount.toPlainString()} $currency", fontSize = 16.sp, color = MaterialTheme.colorScheme.secondary)
-                        Text(text = "${xmrAmount.setScale(5, RoundingMode.HALF_UP).toPlainString()} XMR", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimary)
+                        Text(text = "${fiatAmount.toPlainString()} $currency", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(text = "${xmrAmount.setScale(5, RoundingMode.HALF_UP).toPlainString()} XMR", style = MaterialTheme.typography.labelSmall)
                     } else {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp)

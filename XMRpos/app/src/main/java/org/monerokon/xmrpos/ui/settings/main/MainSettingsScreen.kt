@@ -10,9 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import org.monerokon.xmrpos.R
 
@@ -64,7 +66,7 @@ fun MainSettingsScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 ),
                 navigationIcon = {
                     IconButton(onClick = {onBackClick()}) {
@@ -80,8 +82,7 @@ fun MainSettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Settings")
-                        Text("v$versionName")
+                        Text("Settings", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             )
@@ -94,17 +95,17 @@ fun MainSettingsScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
             SettingsCard(text = "Company information", onClick = {navigateToCompanyInformation()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             SettingsCard(text = "Fiat currencies", onClick = {navigateToFiatCurrencies()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             SettingsCard(text = "Security", onClick = {navigateToSecurity()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             SettingsCard(text = "Transaction history", onClick = {navigateToTransactionHistory()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             SettingsCard(text = "Backend", onClick = {navigateToBackend()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             SettingsCard(text = "Printer settings", onClick = {navigateToPrinterSettings()})
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }
@@ -115,11 +116,12 @@ fun SettingsCard(
     text: String,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         onClick = onClick,
-        elevation = CardDefaults.cardElevation(1.dp),
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
+            .height(57.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -128,7 +130,7 @@ fun SettingsCard(
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            Text(text)
+            Text(text, style = MaterialTheme.typography.labelSmall)
             Spacer(modifier = Modifier.width(16.dp))
             Icon(
                 painter = painterResource(id = R.drawable.arrow_forward_24px),

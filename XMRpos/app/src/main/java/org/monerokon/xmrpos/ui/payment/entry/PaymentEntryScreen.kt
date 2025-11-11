@@ -106,7 +106,7 @@ fun PaymentEntryScreen(
                         FilledIconButton(
                             onClick = {onSettingsClick()},
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onPrimary,
                             ),
                                     modifier = Modifier.
@@ -227,7 +227,7 @@ fun OpenSettingsDialog(
 fun PaymentValue(value: String, currency: String) {
     Surface(
         shape = MaterialTheme.shapes.medium,
-        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
 
@@ -240,7 +240,7 @@ fun PaymentValue(value: String, currency: String) {
         ) {
             Text(
                 text = currency,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
             )
             Text(
@@ -385,7 +385,6 @@ fun PaymentEntryButton(
                 }
             ),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.primary,
     ) {
         Box(
             contentAlignment = Alignment.Center
@@ -422,7 +421,7 @@ fun PaymentEntryControlButtons(
             iconColor = Color(0xFFFFFFFF),
             contentDescription = "Back",
             onClick = onBackspaceClick,
-            containerColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
             modifier = Modifier.weight(1f)
         )
         PaymentEntryControlButton(
