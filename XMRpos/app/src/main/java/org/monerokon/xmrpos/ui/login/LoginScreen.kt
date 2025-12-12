@@ -95,7 +95,6 @@ fun LoginScreen(
                     dialogTitle = "Error",
                     dialogText = errorMessage,
                     confirmButtonText = "Ok",
-                    dismissButtonText = null,
                     icon = {
                         Icon(painter = painterResource(R.drawable.warning_24px), contentDescription = "Warning")
                     }

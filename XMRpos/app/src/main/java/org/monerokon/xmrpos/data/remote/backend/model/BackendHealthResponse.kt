@@ -12,7 +12,7 @@ data class BackendHealthResponse(
 @Serializable
 data class TopLevelServices(
     val postgresql: Boolean,
-    @SerialName("MoneroPay") // Use @SerialName if the Kotlin property name differs from JSON key
+    @SerialName("MoneroPay")
     val moneroPay: MoneroPayStatus
 )
 
@@ -24,8 +24,8 @@ data class MoneroPayStatus(
 
 @Serializable
 data class MoneroPayServices(
-    @SerialName("walletrpc") // Example: if you wanted to name the Kotlin property 'walletRpc'
-    val walletRpc: Boolean, // Changed property name for demonstration, can be 'walletrpc'
+    @SerialName("walletrpc")
+    val walletRpc: Boolean,
     val postgresql: Boolean
 )
 

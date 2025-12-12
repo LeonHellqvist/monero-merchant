@@ -14,6 +14,7 @@ import org.monerokon.xmrpos.data.repository.DataStoreRepository
 import org.monerokon.xmrpos.data.repository.BackendRepository
 import org.monerokon.xmrpos.shared.DataResult
 import org.monerokon.xmrpos.ui.Settings
+import org.monerokon.xmrpos.data.remote.backend.model.BackendHealthResponse
 import javax.inject.Inject
 
 @HiltViewModel
@@ -43,7 +44,7 @@ class BackendViewModel @Inject constructor(
 
     var conf: String by mutableStateOf("")
 
-    var healthStatus by mutableStateOf("")
+    var healthStatus: DataResult<BackendHealthResponse>? by mutableStateOf(null)
 
     init {
         viewModelScope.launch {
@@ -92,18 +93,13 @@ class BackendViewModel @Inject constructor(
     fun fetchBackendHealth() {
         viewModelScope.launch {
             val response = backendRepository.health()
-            if (response is DataResult.Success) {
-                Log.i(logTag, "Backend health: ${response.data}")
-                healthStatus = response.data.toString()
-            } else if (response is DataResult.Failure) {
-                Log.e(logTag, "Backend health: ${response.message}")
-                healthStatus = response.message
-            }
+            Log.i(logTag, "Backend health: $response")
+            healthStatus = response
         }
     }
 
     fun resetHealthStatus() {
-        healthStatus = ""
+        healthStatus = null
     }
 
     fun logout() {
