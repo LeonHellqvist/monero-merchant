@@ -11,10 +11,8 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,20 +29,21 @@ import org.monerokon.xmrpos.R
 object InputTile {
 
     /**
-     * A private base layout for all input tiles, providing a consistent row structure.
+     * A base layout for all input tiles, providing a consistent two-column row structure.
      *
-     * This composable is not meant to be used directly. It establishes a common layout with a
-     * label on the left and a slot for an input control on the right, both taking up equal space.
+     * It establishes a common layout with a
+     * slot for content on the left and a slot for content on the right, with each taking up
+     * equal space.
      *
-     * @param label The text to be displayed in the left-hand side of the tile.
      * @param modifier The [Modifier] to be applied to the entire tile.
-     * @param inputContent The composable content for the input control, displayed on the right.
+     * @param contentLeft The composable content for the left-hand side of the tile.
+     * @param contentRight The composable content for the right-hand side of the tile.
      */
     @Composable
-    private fun Base(
-        label: String,
+    fun Base(
         modifier: Modifier = Modifier,
-        inputContent: @Composable () -> Unit
+        contentLeft: @Composable () -> Unit,
+        contentRight: @Composable () -> Unit,
     ) {
         Surface(
             modifier = modifier
@@ -53,37 +52,116 @@ object InputTile {
             shape = MaterialTheme.shapes.medium
         ) {
             Row(
-                modifier = Modifier.padding(start = 16.dp, top = 10.dp, end = 10.dp, bottom = 10.dp),
+                modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 10.dp, bottom = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Box(modifier = Modifier.weight(1f)) {
-                    Text(text = label, style = MaterialTheme.typography.labelSmall)
+                    contentLeft()
                 }
+                Spacer(modifier = Modifier.width(10.dp))
                 Box(modifier = Modifier.weight(1f)) {
-                        inputContent()
+                    contentRight()
                 }
             }
         }
     }
 
     /**
-     * An [InputTile] that contains a text field for user input.
+     * A composable that displays the styled label text for an [InputTile].
      *
-     * This composable displays a label on the left and a styled [BasicTextField] on the right,
-     * suitable for free-form text entry.
+     * It standardizes the typography and padding for all tile labels.
+     *
+     * @param label The string to be displayed as the label.
+     * @param modifier The [Modifier] to be applied to the Text composable.
+     */
+    @Composable
+    fun Label(
+        label: String,
+        modifier: Modifier = Modifier,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, modifier = modifier.padding(start = 6.dp))
+    }
+
+    /**
+     * A styled, low-level text input field used within the [InputTile] ecosystem.
+     *
+     * This composable is built on [BasicTextField] to provide full control over styling,
+     * including background, height, and internal padding, while disabling the default
+     * Material component styling. It's designed to be used as the `contentRight` for other tiles.
      *
      * @param value The current text value to be displayed in the text field.
      * @param onValueChange The callback that is triggered when the input service updates the text.
-     * @param label The text to be displayed in the left-hand side of the tile.
-     * @param modifier The [Modifier] to be applied to the tile.
+     * @param modifier The [Modifier] to be applied to the text field.
      * @param prefix An optional string to be displayed as a prefix inside the text field.
-     * @param visualTransformation An optional [VisualTransformation] to apply to the input,
-     *   such as for password masking.
-     * @param keyboardOptions Software keyboard options that contain configuration like
-     *   [androidx.compose.ui.text.input.ImeAction] and [androidx.compose.ui.text.input.KeyboardType].
-     * @param enabled Controls the enabled state of the text field. When `false`, it will not be
-     *   interactive.
+     * @param visualTransformation An optional [VisualTransformation] to apply to the input, such as for passwords.
+     * @param keyboardOptions Software keyboard options for the text field.
+     * @param enabled Controls the enabled state of the text field.
+     */
+    @Composable
+    fun TextInput(
+        value: String,
+        onValueChange: (String) -> Unit,
+        modifier: Modifier = Modifier,
+        prefix: String?,
+        visualTransformation: VisualTransformation = VisualTransformation.None,
+        keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+        enabled: Boolean = true,
+    ) {
+        BasicTextField(
+            enabled = enabled,
+            value = value,
+            onValueChange = onValueChange,
+            modifier = modifier
+                .background(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small
+                )
+                .height(37.dp),
+            textStyle = MaterialTheme.typography.labelSmall.copy(
+                color = MaterialTheme.colorScheme.onBackground,
+                textDirection = TextDirection.Rtl,
+            ),
+            visualTransformation = visualTransformation,
+            keyboardOptions = keyboardOptions,
+            singleLine = true,
+            decorationBox = { innerTextField ->
+                Row(
+                    modifier = Modifier.padding(all = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(modifier = Modifier.weight(1f)){
+                        if (prefix != null) {
+                            Text(
+                                text = prefix,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f)
+                                ),
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+
+    /**
+     * An [InputTile] that combines a label with a text input field.
+     *
+     * This composable arranges a label on the left and a [TextInput] on the right,
+     * creating a complete row for text-based user input.
+     *
+     * @param value The current text value for the input field.
+     * @param onValueChange The callback for when the text value changes.
+     * @param label The descriptive label for the input field.
+     * @param modifier The [Modifier] to be applied to the entire tile.
+     * @param prefix An optional string to be displayed as a prefix inside the text field.
+     * @param visualTransformation An optional [VisualTransformation] for the input field.
+     * @param keyboardOptions Software keyboard options for the input field.
+     * @param enabled Controls the enabled state of the input field.
      */
     @Composable
     fun Text(
@@ -97,67 +175,106 @@ object InputTile {
         enabled: Boolean = true,
     ) {
         Base(
-            label = label,
-            modifier = modifier
-        ) {
-            BasicTextField(
-                enabled = enabled,
-                value = value,
-                onValueChange = onValueChange,
-                modifier = modifier
-                    // --- FIX IS HERE ---
-                    // Add a background color and shape.
-                    // It's important that this shape matches the border shape if you have one.
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = MaterialTheme.shapes.small
-                    )
-                    .height(37.dp),
-                textStyle = MaterialTheme.typography.labelSmall.copy(
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textDirection = TextDirection.Rtl,
-                ),
-                visualTransformation = visualTransformation,
-                keyboardOptions = keyboardOptions,
-                singleLine = true,
-                decorationBox = { innerTextField ->
-                    Row(
-                        // Add horizontal padding inside the background
-                        modifier = Modifier.padding(all = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Box(modifier = Modifier.weight(1f)){
-                            if (prefix != null) {
-                                Text(
-                                    text = prefix,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f)
-                                    ),
-                                    modifier = Modifier.padding(end = 4.dp) // Space between prefix and text
-                                )
-                            } // Give the input area a weight so it fills the remaining space
+            modifier = modifier,
+            contentLeft = { Label(label = label) },
+            contentRight = {
+                TextInput(
+                    value = value,
+                    onValueChange = onValueChange,
+                    modifier = modifier,
+                    prefix = prefix,
+                    visualTransformation = visualTransformation,
+                    keyboardOptions = keyboardOptions,
+                    enabled = enabled
+                )
+            }
+        )
+    }
+
+    /**
+     * A styled, low-level dropdown menu box used within the [InputTile] ecosystem.
+     *
+     * This composable is built on [ExposedDropdownMenuBox] to provide a custom appearance
+     * for the dropdown anchor, including a prefix and the currently selected value.
+     * It's designed to be used as the `contentRight` for other tiles.
+     *
+     * @param value The currently selected item value to be displayed.
+     * @param items The list of string items to display in the dropdown menu.
+     * @param onItemSelected The callback triggered when an item is selected.
+     * @param modifier The [Modifier] to be applied to the dropdown box.
+     * @param prefix An optional string prefix to display above the selected value.
+     */
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun DropdownInput(
+        value: String,
+        items: List<String>,
+        onItemSelected: (String) -> Unit,
+        modifier: Modifier = Modifier,
+        prefix: String?,
+    ) {
+        var expanded by remember { mutableStateOf(false) }
+
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = {expanded = !expanded}, modifier = modifier) {
+            Surface(
+                modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium,
+                content = {
+                    Box(modifier = Modifier.padding(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column {
+                                if (prefix != null) {
+                                    Text(prefix, style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f)))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(value, style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onBackground))
+                                }
+                            }
+                            if (expanded) {
+                                Icon(painter = painterResource(R.drawable.keyboard_arrow_up_24px), tint = MaterialTheme.colorScheme.onBackground, contentDescription = "Arrow up")
+                            } else {
+                                Icon(painter = painterResource(R.drawable.keyboard_arrow_down_24px), tint = MaterialTheme.colorScheme.onBackground, contentDescription = "Arrow down")
+                            }
                         }
-                        innerTextField()
                     }
                 }
             )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = {expanded = false},
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.small
+            ) {
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item, style = MaterialTheme.typography.labelSmall) },
+                        onClick = {
+                            expanded = false
+                            onItemSelected(item)
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                    )
+                }
+            }
         }
     }
 
     /**
-     * An [InputTile] that contains a dropdown menu for selecting from a list of items.
+     * An [InputTile] that combines a label with a dropdown menu for item selection.
      *
-     * This composable displays a label on the left and an [ExposedDropdownMenuBox] on the right,
-     * allowing users to select an option from a predefined list.
+     * This composable arranges a label on the left and a [DropdownInput] on the right,
+     * creating a complete row for selecting an option from a list.
      *
      * @param value The currently selected item value to be displayed.
      * @param items The list of string items to display in the dropdown menu.
-     * @param onItemSelected The callback that is triggered when an item is selected from the menu.
-     * @param label The text to be displayed in the left-hand side of the tile.
-     * @param modifier The [Modifier] to be applied to the tile.
-     * @param prefix An optional string to be displayed as a prefix above the selected value
-     *   inside the dropdown box.
+     * @param onItemSelected The callback that is triggered when an item is selected.
+     * @param label The descriptive label for the dropdown.
+     * @param modifier The [Modifier] to be applied to the entire tile.
+     * @param prefix An optional string prefix to display above the selected value in the dropdown box.
      */
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -170,57 +287,17 @@ object InputTile {
         prefix: String?,
     ) {
         Base(
-            label = label,
-            modifier = modifier
-        ) {
-            var expanded by remember { mutableStateOf(false) }
-
-            ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = {expanded = !expanded}, modifier = modifier) {
-                Surface(
-                    modifier = Modifier.menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true).fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.medium,
-                    content = {
-                        Box(modifier = Modifier.padding(10.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column {
-                                    if (prefix != null) {
-                                        Text(prefix, style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f)))
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(value, style = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onBackground))
-                                    }
-                                }
-                                if (expanded) {
-                                    Icon(painter = painterResource(R.drawable.keyboard_arrow_up_24px), tint = MaterialTheme.colorScheme.onBackground, contentDescription = "Arrow up")
-                                } else {
-                                    Icon(painter = painterResource(R.drawable.keyboard_arrow_down_24px), tint = MaterialTheme.colorScheme.onBackground, contentDescription = "Arrow down")
-                                }
-                            }
-                        }
-                    }
+            modifier = modifier,
+            contentLeft = { Label(label = label) },
+            contentRight = {
+                DropdownInput(
+                    value = value,
+                    items = items,
+                    onItemSelected = onItemSelected,
+                    modifier = modifier,
+                    prefix = prefix
                 )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = {expanded = false},
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = MaterialTheme.shapes.small
-                    ) {
-                    items.forEach { item ->
-                        DropdownMenuItem(
-                            text = { Text(item, style = MaterialTheme.typography.labelSmall) },
-                            onClick = {
-                                expanded = false
-                                onItemSelected(item)
-                            },
-                            contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
-                        )
-                    }
-                }
             }
-        }
+        )
     }
 }

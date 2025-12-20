@@ -9,10 +9,15 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -28,7 +33,10 @@ import androidx.navigation.NavHostController
 import org.monerokon.xmrpos.R
 import org.monerokon.xmrpos.ui.common.composables.BluetoothConnectPermissionTextProvider
 import org.monerokon.xmrpos.ui.common.composables.BluetoothScanPermissionTextProvider
+import org.monerokon.xmrpos.ui.common.composables.InputTile
 import org.monerokon.xmrpos.ui.common.composables.PermissionDialog
+import org.monerokon.xmrpos.ui.common.composables.ProportionalRow
+import org.monerokon.xmrpos.ui.common.composables.StyledTopAppBar
 
 @Composable
 fun PrinterSettingsScreenRoot(viewModel: PrinterSettingsViewModel, navController: NavHostController) {
@@ -112,235 +120,182 @@ fun PrinterSettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { onBackClick() }) {
-                        Icon(
-                            painter = painterResource(R.drawable.arrow_back_24px),
-                            contentDescription = "Go back to previous screen"
-                        )
-                    }
-                },
-                title = {
-                    Text("Printer settings")
-                }
+            StyledTopAppBar(
+                text = "Printer settings",
+                onBackClick = onBackClick
             )
         },
     ) { innerPadding ->
         Column(
-            verticalArrangement = Arrangement.Top,
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(horizontal = 32.dp, vertical = 24.dp)
-                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .fillMaxSize()
+                .imePadding()
                 .verticalScroll(scrollState)
         ) {
-            Text("Printer connection", style = MaterialTheme.typography.titleLarge)
+            Text("Printer connection", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            SingleChoiceSegmentedButtonRow {
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4),
-                    onClick = {
-                        updatePrinterConnectionType("bluetooth")
-                        bluetoothPermissionResultLauncher.launch(bluetoothPermissionsToRequest)
-                    },
-                    selected = printerConnectionType == "bluetooth"
+            Surface(
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.extraLarge,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) {
+                ProportionalRow(
+                    horizontalGap = 4.dp,
+                    modifier = Modifier.padding(6.dp)
                 ) {
-                    Text("Bluetooth")
-                }
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4),
-                    onClick = { updatePrinterConnectionType("tcp/ip") },
-                    selected = printerConnectionType == "tcp/ip"
-                ) {
-                    Text("TCP/IP")
-                }
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4),
-                    onClick = { updatePrinterConnectionType("usb") },
-                    selected = printerConnectionType == "usb"
-                ) {
-                    Text("USB")
-                }
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4),
-                    onClick = { updatePrinterConnectionType("none") },
-                    selected = printerConnectionType == "none"
-                ) {
-                    Text("None")
+                    ConnectionChip(
+                        onClick = { updatePrinterConnectionType("bluetooth") },
+                        selected = printerConnectionType == "bluetooth",
+                        label = "Bluetooth"
+                    )
+                    ConnectionChip(
+                        onClick = { updatePrinterConnectionType("tcp/ip") },
+                        selected = printerConnectionType == "tcp/ip",
+                        label = "TCP/IP"
+                    )
+                    ConnectionChip(
+                        onClick = { updatePrinterConnectionType("usb") },
+                        selected = printerConnectionType == "usb",
+                        label = "USB"
+                    )
+                    ConnectionChip(
+                        onClick = { updatePrinterConnectionType("none") },
+                        selected = printerConnectionType == "none",
+                        label = "None"
+                    )
                 }
             }
-            AnimatedVisibility(
-                visible = printerConnectionType == "tcp/ip",
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -it })
-            ) {
+            Box(modifier = Modifier.defaultMinSize(minHeight = 137.dp)) {
                 Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // TODO: REMOVE THIS WHEN FEATURE IS TESTED
-                    Text("Untested feature", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        horizontalArrangement = Arrangement.Center
+                    AnimatedVisibility(
+                        visible = printerConnectionType == "tcp/ip",
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { -it })
                     ) {
-                        TextField(
-                            value = printerAddress,
-                            onValueChange = { updatePrinterAddress(it) },
-                            label = { Text("IP address") },
-                            modifier = Modifier.width(200.dp)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        TextField(
-                            value = printerPort,
-                            onValueChange = { updatePrinterPort(it) },
-                            label = { Text("Port") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                }
-            }
-            AnimatedVisibility(
-                visible = printerConnectionType == "usb",
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -it })
-            ) {
-                Column {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    // TODO: REMOVE THIS WHEN FEATURE IS TESTED
-                    Text("Untested feature", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (attachedUsbDevices.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("Attached USB devices", style = MaterialTheme.typography.titleLarge)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        attachedUsbDevices.forEach { device ->
-                            OutlinedCard(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp)
-                                ) {
-                                    Text("Device name: ${device.deviceName}")
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Device ID: ${device.deviceId}")
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Vendor ID: ${device.vendorId}")
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Product ID: ${device.productId}")
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    FilledTonalButton(
-                                        onClick = {
-                                            requestPermissionPrinterUsb(
-                                                device
-                                            )
-                                        }
-                                    ) {
-                                        Text("Request permission")
-                                    }
-                                }
-                            }
+                        Column {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            // TODO: REMOVE THIS WHEN FEATURE IS TESTED
+                            Text("Untested feature", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Left, modifier = Modifier.fillMaxWidth())
                             Spacer(modifier = Modifier.height(16.dp))
+                            InputTile.Base(
+                                contentLeft = {InputTile.TextInput(
+                                    value = printerAddress,
+                                    onValueChange = { updatePrinterAddress(it) },
+                                    prefix = "IP",
+                                )},
+                                contentRight = {InputTile.TextInput(
+                                    value = printerPort,
+                                    onValueChange = { updatePrinterPort(it) },
+                                    prefix = "Port",
+                                )}
+                            )
                         }
-                    } else {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("No attached USB devices", style = MaterialTheme.typography.titleLarge)
+                    }
+                    AnimatedVisibility(
+                        visible = printerConnectionType == "usb",
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { -it })
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            // TODO: REMOVE THIS WHEN FEATURE IS TESTED
+                            Text("Untested feature", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary, textAlign = TextAlign.Left, modifier = Modifier.fillMaxWidth())
+                            Spacer(modifier = Modifier.height(8.dp))
+                            if (attachedUsbDevices.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("Attached USB devices", style = MaterialTheme.typography.titleLarge)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                attachedUsbDevices.forEach { device ->
+                                    OutlinedCard(
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(24.dp)
+                                        ) {
+                                            Text("Device name: ${device.deviceName}", style = MaterialTheme.typography.labelSmall)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("Device ID: ${device.deviceId}", style = MaterialTheme.typography.labelSmall)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("Vendor ID: ${device.vendorId}", style = MaterialTheme.typography.labelSmall)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text("Product ID: ${device.productId}", style = MaterialTheme.typography.labelSmall)
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            FilledTonalButton(
+                                                onClick = {
+                                                    requestPermissionPrinterUsb(
+                                                        device
+                                                    )
+                                                }
+                                            ) {
+                                                Text("Request permission")
+                                            }
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+                            } else {
+                                Spacer(modifier = Modifier.height(70.dp)) // TODO: This should be implemented in a better way
+                                Text("No attached USB devices", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f))
+                            }
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
-            Text("Printer parameters", style = MaterialTheme.typography.titleLarge)
+            Text("Printer parameters", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Printer DPI")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextField(
-                            value = printerDpi,
-                            onValueChange = { updatePrinterDpi(it) },
-                            label = { Text("DPI") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Printer width (mm)")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextField(
-                            value = printerWidth,
-                            onValueChange = { updatePrinterWidth(it) },
-                            label = { Text("mm") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Printer characters per line")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextField(
-                            value = printerNbrCharactersPerLine,
-                            onValueChange = { updatePrinterNbrCharactersPerLine(it) },
-                            label = { Text("Characters") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Printer charset encoding")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextField(
-                            value = printerCharsetEncoding,
-                            onValueChange = { updatePrinterCharsetEncoding(it) },
-                            label = { Text("Encoding") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Printer charset ID")
-                        Spacer(modifier = Modifier.width(8.dp))
-                        TextField(
-                            value = printerCharsetId,
-                            onValueChange = { updatePrinterCharsetId(it) },
-                            label = { Text("ID") },
-                            modifier = Modifier.width(100.dp)
-                        )
-                    }
-                }
+            Column {
+                InputTile.Text(
+                    value = printerDpi,
+                    onValueChange = { updatePrinterDpi(it) },
+                    label = "Printer DPI",
+                    prefix = "DPI",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                InputTile.Text(
+                    value = printerWidth,
+                    onValueChange = { updatePrinterWidth(it) },
+                    label = "Printer width (mm)",
+                    prefix = "mm",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                InputTile.Text(
+                    value = printerNbrCharactersPerLine,
+                    onValueChange = { updatePrinterNbrCharactersPerLine(it) },
+                    label = "Printer characters per line",
+                    prefix = "Characters",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                InputTile.Text(
+                    value = printerCharsetEncoding,
+                    onValueChange = { updatePrinterCharsetEncoding(it) },
+                    label = "Printer charset encoding",
+                    prefix = "Encoding",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                InputTile.Text(
+                    value = printerCharsetId,
+                    onValueChange = { updatePrinterCharsetId(it) },
+                    label = "Printer charset ID",
+                    prefix = "ID",
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             Spacer(modifier = Modifier.height(32.dp))
             FilledTonalButton (
                 onClick = { printTest() },
                 enabled = !printingInProgress,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                ),
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                Text("Print test")
+                Text("Print test", style = MaterialTheme.typography.labelSmall)
                 AnimatedVisibility(
                     visible = printingInProgress,
                     enter = fadeIn() + slideInHorizontally(initialOffsetX = { -it })
@@ -353,6 +308,7 @@ fun PrinterSettingsScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(57.dp))
             visiblePermissionDialogQueue
                 .reversed()
                 .forEach { permission ->
@@ -382,6 +338,52 @@ fun PrinterSettingsScreen(
                         onGoToAppSettingsClick = { activity.openAppSettings() }
                     )
                 }
+        }
+    }
+}
+@Composable
+fun ConnectionChip(
+    onClick: () -> Unit,
+    selected: Boolean,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val iconWidth by animateDpAsState(
+        targetValue = if (selected) FilterChipDefaults.IconSize + 4.dp else 0.dp,
+        animationSpec = tween(durationMillis = 200),
+        label = "iconWidthAnimation"
+    )
+
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceVariant,
+        onClick = onClick,
+        modifier = modifier.fillMaxHeight()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.animateContentSize(
+                animationSpec = tween(durationMillis = 200)
+            )
+        ) {
+            Row(modifier = Modifier.width(iconWidth)) {
+                Icon(
+                    painter = painterResource(R.drawable.check_24px),
+                    contentDescription = "Selected",
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                ),
+                maxLines = 1
+            )
         }
     }
 }
