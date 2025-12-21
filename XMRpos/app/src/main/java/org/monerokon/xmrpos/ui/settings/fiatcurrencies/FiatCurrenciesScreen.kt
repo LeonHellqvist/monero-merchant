@@ -121,7 +121,6 @@ fun ReferenceFiatCurrenciesCard(
                 if (index < referenceFiatCurrencies.size - 1) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 12.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                     )
                 }
             }
