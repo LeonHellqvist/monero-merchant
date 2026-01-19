@@ -103,46 +103,65 @@ fun TransactionHistoryScreen(
             }
 
             else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 24.dp),
-                ) {
-                    item {
-                        Text(
-                            text = "Pending transactions",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                    item {
-                        if (uiState.pendingTransactions.isEmpty()) {
-                            EmptyStateMessage("No pending transactions")
-                        } else {
-                            PendingTransactionsTable(uiState.pendingTransactions)
-                        }
-                    }
-                    item {
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text(
-                            text = "Confirmed transactions",
-                            style = MaterialTheme.typography.labelLarge,
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                    }
-                    if (uiState.confirmedTransactions.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                    ) {
                         item {
-                            EmptyStateMessage("No confirmed transactions")
+                            Text(
+                                text = "Pending transactions",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                    } else {
-                        items(uiState.confirmedTransactions, key = { it.transactionId }) { transaction ->
-                            Spacer(modifier = Modifier.height(10.dp))
-                            ConfirmedTransactionRow(transaction)
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider()
+                        item {
+                            if (uiState.pendingTransactions.isEmpty()) {
+                                EmptyStateMessage("No pending transactions")
+                            } else {
+                                PendingTransactionsTable(uiState.pendingTransactions)
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text(
+                                text = "Confirmed transactions",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+                        if (uiState.confirmedTransactions.isEmpty()) {
+                            item {
+                                EmptyStateMessage("No confirmed transactions")
+                            }
+                        } else {
+                            items(uiState.confirmedTransactions, key = { it.transactionId }) { transaction ->
+                                Spacer(modifier = Modifier.height(10.dp))
+                                ConfirmedTransactionRow(transaction)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                HorizontalDivider()
+                            }
+                        }
+                        item {
+                            // Extra spacer so content is not fully hidden behind the gradient when scrolled to bottom
+                            Spacer(modifier = Modifier.height(60.dp))
                         }
                     }
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .height(60.dp)
+                            .background(
+                                brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.background,
+                                    )
+                                )
+                            )
+                    )
                 }
             }
         }
