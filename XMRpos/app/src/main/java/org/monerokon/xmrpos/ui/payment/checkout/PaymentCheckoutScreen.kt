@@ -22,6 +22,7 @@ import org.monerokon.xmrpos.ui.PaymentSuccess
 import org.monerokon.xmrpos.ui.common.composables.CustomAlertDialog
 import org.monerokon.xmrpos.ui.common.composables.FiatCard
 import java.math.BigDecimal
+import java.math.RoundingMode
 
 @Composable
 fun PaymentCheckoutScreenRoot(viewModel: PaymentCheckoutViewModel, navController: NavHostController, fiatAmount: Double, primaryFiatCurrency: String) {
@@ -74,7 +75,7 @@ fun PaymentCheckoutScreen(
             Spacer(modifier = Modifier.height(20.dp))
             FiatCard("Total Amount", primaryFiatCurrency, exchangeRates?.get(primaryFiatCurrency), paymentValue.toString(), xmrValue = targetXMRvalue)
             Spacer(modifier = Modifier.height(16.dp))
-            ReferenceCurrenciesCard(referenceFiatCurrencies, exchangeRates, paymentValue, targetXMRvalue)
+            ReferenceCurrenciesCard(referenceFiatCurrencies, exchangeRates, targetXMRvalue)
             Spacer(modifier = Modifier.height(16.dp))
             if (errorMessage.isNotEmpty()) {
                 Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
@@ -130,21 +131,22 @@ fun PaymentCheckoutScreen(
 fun ReferenceCurrenciesCard(
     referenceFiatCurrencies: List<String>,
     exchangeRates: Map<String, Double>?,
-    paymentValue: Double,
     targetXMRvalue: BigDecimal
 ) {
     Surface (
         shape = MaterialTheme. shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = 180.dp), // Use heightIn instead of height
+            .heightIn(max = 180.dp),
     ) {
         LazyColumn {
             items(referenceFiatCurrencies.size) { index ->
+                val estimatedValue = BigDecimal.valueOf(exchangeRates?.get(referenceFiatCurrencies[index])
+                    ?.times(targetXMRvalue.toDouble()) ?: 0.0)
                 CurrencyConverterCard(
                     referenceFiatCurrencies[index],
                     exchangeRates?.get(referenceFiatCurrencies[index]),
-                    paymentValue. toString(),
+                    estimatedValue.setScale(3, RoundingMode.HALF_UP).toPlainString(),
                     targetXMRvalue = targetXMRvalue
                 )
                 if (index < referenceFiatCurrencies.size - 1) {

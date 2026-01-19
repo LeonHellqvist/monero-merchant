@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -44,8 +45,10 @@ fun FiatCard(
                 verticalAlignment = Alignment.Bottom,
             ) {
                 Text(
-                    text = fiatValue,
+                    text = BigDecimal.valueOf(fiatValue.toDouble()).setScale(maxOf(3, fiatValue.toBigDecimal().scale()),
+                        RoundingMode.HALF_UP).toPlainString(),
                     style = MaterialTheme.typography.displayLarge,
+                    lineHeight = 32.sp,
                     modifier = Modifier.alignByBaseline()
                 )
                 Spacer(modifier = Modifier.width(6.dp))
@@ -55,6 +58,7 @@ fun FiatCard(
                     modifier = Modifier.alignByBaseline()
                 )
             }
+            Spacer(modifier = Modifier.height(6.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Row(

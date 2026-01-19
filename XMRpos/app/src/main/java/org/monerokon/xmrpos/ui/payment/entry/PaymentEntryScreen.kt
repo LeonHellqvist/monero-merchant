@@ -28,6 +28,7 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import org.monerokon.xmrpos.R
 import org.monerokon.xmrpos.ui.common.composables.CustomAlertDialog
+import java.math.RoundingMode
 
 // PaymentEntryScreenRoot
 @Composable
@@ -103,7 +104,10 @@ fun PaymentEntryScreen(
                     CurrencyConverterCard(
                         currency = primaryFiatCurrency,
                         exchangeRate = exchangeRate,
-                        paymentValue = paymentValue,
+                        paymentValue = paymentValue.toBigDecimal().setScale(
+                            maxOf(3, paymentValue.toBigDecimal().scale()),
+                            RoundingMode. HALF_UP
+                        ).toPlainString(),
                         emphasize = true,
                     )
                 }
