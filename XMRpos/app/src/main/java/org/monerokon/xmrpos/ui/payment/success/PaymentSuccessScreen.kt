@@ -4,6 +4,7 @@ package org.monerokon.xmrpos.ui.payment.success
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.monerokon.xmrpos.ui.PaymentSuccess
@@ -54,66 +56,54 @@ fun PaymentSuccessScreen(
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
         Column (
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(innerPadding).padding(horizontal = 48.dp, vertical = 48.dp).fillMaxSize(),
+            modifier = Modifier.padding(innerPadding).fillMaxSize(),
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
-            Column() {
-                Box(
-                    modifier = Modifier
-                        .size(190.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
+            Spacer(modifier = Modifier.height(20.dp))
+            Image(
+                painterResource(R.drawable.success),
+                contentDescription = null,
+                modifier = Modifier.size(60.dp)
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Text("Payment Successful", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(10.dp))
+            Text("The payment has been confirmed.\nYou can now start a new order.", style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
+            Spacer(modifier = Modifier.height(23.dp))
+            Row {
+                Button(
+                    onClick = {navigateToEntry()},
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.check_24px),
-                        contentDescription = "Payment successful",
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.surface
-                    )
+                    Text("New Order")
                 }
-                Spacer(modifier = Modifier.height(32.dp))
-                Text(
-                    text = "Payment successful",
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            if (showPrintReceipt) {
-                FilledTonalButton(
-                    onClick = {printReceipt(PaymentSuccess(
-                        fiatAmount = fiatAmount,
-                        primaryFiatCurrency = primaryFiatCurrency,
-                        txId = txId,
-                        xmrAmount = xmrAmount,
-                        exchangeRate = exchangeRate,
-                        timestamp = timestamp,
-                        showPrintReceipt = showPrintReceipt
-                    ))}
-                ) {
-                    Text("Print receipt")
-                    AnimatedVisibility(
-                        visible = printingInProgress,
-                        enter = fadeIn() + slideInHorizontally(initialOffsetX = { -it })
-                    ) {
-                        Row {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp)
-                            )
+                if (showPrintReceipt) {
+                    Row {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FilledTonalButton(
+                            onClick = {printReceipt(PaymentSuccess(
+                                fiatAmount = fiatAmount,
+                                primaryFiatCurrency = primaryFiatCurrency,
+                                txId = txId,
+                                xmrAmount = xmrAmount,
+                                exchangeRate = exchangeRate,
+                                timestamp = timestamp,
+                                showPrintReceipt = showPrintReceipt
+                            ))}
+                        ) {
+                            Text("Print Receipt")
+                            AnimatedVisibility(
+                                visible = printingInProgress,
+                                enter = fadeIn() + slideInHorizontally(initialOffsetX = { -it })
+                            ) {
+                                Row {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(32.dp))
-            ElevatedButton(
-                onClick = {navigateToEntry()},
-                modifier = Modifier.scale(2f),
-                colors = ButtonDefaults.elevatedButtonColors(containerColor = Color(0xFFFF9800))
-            ) {
-                Text("Next order")
             }
         }
     }
