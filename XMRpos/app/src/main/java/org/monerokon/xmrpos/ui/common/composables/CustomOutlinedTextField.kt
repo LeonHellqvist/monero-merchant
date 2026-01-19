@@ -69,8 +69,9 @@ fun CustomOutlinedTextField(
     placeholder: String? = null,
     supportingText: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    useDarkTheme: Boolean = true,
 ) {
-    val customColors = OutlinedTextFieldDefaults.colors(
+    val customColorsDark = OutlinedTextFieldDefaults.colors(
         focusedLabelColor = MaterialTheme.colorScheme.onBackground,
         unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
         focusedBorderColor = MaterialTheme.colorScheme.onBackground,
@@ -79,8 +80,18 @@ fun CustomOutlinedTextField(
         unfocusedSupportingTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f),
     )
 
-    val placeholderStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.40f))
-    val defaultTextStyle = MaterialTheme.typography.labelSmall
+    val customColorsLight = OutlinedTextFieldDefaults.colors(
+        focusedLabelColor = MaterialTheme.colorScheme.background,
+        unfocusedLabelColor = MaterialTheme.colorScheme.background,
+        focusedBorderColor = MaterialTheme.colorScheme.background,
+        unfocusedBorderColor = MaterialTheme.colorScheme.background.copy(alpha = 0.10f),
+        focusedSupportingTextColor = MaterialTheme.colorScheme.background.copy(alpha = 0.40f),
+        unfocusedSupportingTextColor = MaterialTheme.colorScheme.background.copy(alpha = 0.40f),
+    )
+
+    val placeholderStyle = MaterialTheme.typography.labelSmall.copy(color = if (useDarkTheme) customColorsDark.focusedLabelColor.copy(alpha = 0.40f) else customColorsLight.focusedLabelColor.copy(alpha = 0.40f))
+    val defaultTextStyle = MaterialTheme.typography.labelSmall.copy(color = if (useDarkTheme) customColorsDark.focusedLabelColor else customColorsLight.focusedLabelColor)
+
 
     val placeholderTransformation = PlaceholderTransformation(
         placeholder = placeholder ?: "",
@@ -110,7 +121,7 @@ fun CustomOutlinedTextField(
             }
         },
         shape = MaterialTheme.shapes.medium,
-        colors = customColors,
+        colors = if (useDarkTheme) customColorsDark else customColorsLight,
         modifier = modifier.fillMaxWidth(),
         singleLine = true
     )
