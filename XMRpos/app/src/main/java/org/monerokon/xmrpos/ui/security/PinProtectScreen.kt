@@ -50,28 +50,25 @@ fun PinProtectScreenRoot(
         }
     },
 ) {
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        Box(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
-            NavHost(
-                navController = navController,
-                startDestination = startDestination,
-                enterTransition = {
-                    slideIn(initialOffset = { fullSize -> IntOffset(fullSize.width, 0) }, animationSpec = tween(300, easing = FastOutSlowInEasing))
-                },
-                exitTransition = {
-                    slideOut(targetOffset = { fullSize -> IntOffset(fullSize.width, 0) }, animationSpec = tween(300, easing = FastOutSlowInEasing))
-                },
-                modifier = Modifier.padding(innerPadding)
-            ) {
-                composable<PinProtectScreen> {
-                    PinProtectScreen(
-                        pinCode = pinCode,
-                        onPinEntered = onPinEntered
-                    )
-                }
-                composable<ProtectedScreen> {
-                    protectedScreen()
-                }
+    Box(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            enterTransition = {
+                slideIn(initialOffset = { fullSize -> IntOffset(fullSize.width, 0) }, animationSpec = tween(300, easing = FastOutSlowInEasing))
+            },
+            exitTransition = {
+                slideOut(targetOffset = { fullSize -> IntOffset(fullSize.width, 0) }, animationSpec = tween(300, easing = FastOutSlowInEasing))
+            },
+        ) {
+            composable<PinProtectScreen> {
+                PinProtectScreen(
+                    pinCode = pinCode,
+                    onPinEntered = onPinEntered
+                )
+            }
+            composable<ProtectedScreen> {
+                protectedScreen()
             }
         }
     }
