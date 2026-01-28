@@ -55,7 +55,7 @@ fun BalanceScreen(
             when (vendorBalance) {
                 is DataResult.Success -> {
                     val xmrBalance = BigDecimal.valueOf(vendorBalance.data.balance)
-                        .divide(BigDecimal.valueOf(10000000000000), 14, RoundingMode.HALF_UP)
+                        .divide(BigDecimal.valueOf(1000000000000), 14, RoundingMode.HALF_UP)
                     FiatCard(
                         label = "Balance Amount",
                         currency = primaryFiatCurrency,
