@@ -1,11 +1,16 @@
 // PaymentEntryScreen.kt
 package org.monerokon.xmrpos.ui.payment.entry
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import org.monerokon.xmrpos.ui.common.composables.CurrencyConverterCard
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.EaseOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -26,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.monerokon.xmrpos.R
 import org.monerokon.xmrpos.ui.common.composables.CustomAlertDialog
@@ -155,6 +161,7 @@ fun PaymentEntryScreen(
             OpenSettingsDialog(
                 onDismissRequest = { updateOpenSettingsPinCodeDialog(false) },
                 onConfirmation = {
+                    updateOpenSettingsPinCodeDialog(false)
                     openSettings()
                 },
                 pinCode = pinCodeOpenSettings,
@@ -170,6 +177,15 @@ fun OpenSettingsDialog(
     pinCode: String
 ) {
     var currentPinCode by remember { mutableStateOf("") }
+    var wrongPin by remember { mutableStateOf(false) }
+
+    LaunchedEffect(wrongPin) {
+        if (wrongPin) {
+            delay(5000)
+            wrongPin = false
+        }
+    }
+
     CustomAlertDialog(
         onDismissRequest = {
             onDismissRequest()
@@ -177,18 +193,33 @@ fun OpenSettingsDialog(
         onConfirmation = {
             if (currentPinCode == pinCode) {
                 onConfirmation()
+            } else {
+                wrongPin = true
             }
         },
         dialogTitle = "Settings locked",
         dialogContent = {
-            CustomOutlinedTextField(
-                value = currentPinCode,
-                onValueChange = {currentPinCode = it},
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                label = "Enter your PIN",
-                useDarkTheme = false
-            )
+            Column(
+                modifier = Modifier.animateContentSize()
+            ) {
+                CustomOutlinedTextField(
+                    value = currentPinCode,
+                    onValueChange = {currentPinCode = it},
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    label = "Enter your PIN",
+                    useDarkTheme = false
+                )
+                AnimatedVisibility(
+                    visible = wrongPin,
+                ) {
+                    Text(
+                        text = "Wrong PIN code",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
         },
         confirmButtonText = "Unlock",
         dismissButtonText = "Go back",

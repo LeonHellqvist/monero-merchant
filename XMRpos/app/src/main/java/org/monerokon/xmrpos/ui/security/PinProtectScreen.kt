@@ -1,6 +1,8 @@
 // NavGraph.kt
 package org.monerokon.xmrpos.ui.security
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideIn
@@ -8,8 +10,10 @@ import androidx.compose.animation.slideOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
@@ -17,10 +21,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +41,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import org.monerokon.xmrpos.ui.common.composables.CustomOutlinedTextField
 
@@ -82,10 +89,19 @@ fun PinProtectScreen(
     onPinEntered: () -> Unit,
 ) {
     var enteredPinCode by remember { mutableStateOf("") }
+    var wrongPin by remember { mutableStateOf(false) }
+
+    LaunchedEffect(wrongPin) {
+        if (wrongPin) {
+            delay(5000)
+            wrongPin = false
+        }
+    }
+
     Column (
-        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize().animateContentSize()
     ) {
         CustomOutlinedTextField(
             value = enteredPinCode,
@@ -95,10 +111,24 @@ fun PinProtectScreen(
             label = "Enter your PIN",
             modifier = Modifier.width(280.dp)
         )
+        AnimatedVisibility(
+            visible = wrongPin,
+        ) {
+            Column {
+                Text(
+                    text = "Wrong PIN code",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+        }
         Button(
             onClick = {
                 if (enteredPinCode == pinCode) {
                     onPinEntered()
+                } else {
+                    wrongPin = true
                 }
             }
         ) {
