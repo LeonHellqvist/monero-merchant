@@ -148,7 +148,10 @@ fun PrinterSettingsScreen(
                     modifier = Modifier.padding(6.dp)
                 ) {
                     ConnectionChip(
-                        onClick = { updatePrinterConnectionType("bluetooth") },
+                        onClick = {
+                            updatePrinterConnectionType("bluetooth")
+                            bluetoothPermissionResultLauncher.launch(bluetoothPermissionsToRequest)
+                        },
                         selected = printerConnectionType == "bluetooth",
                         label = "Bluetooth"
                     )

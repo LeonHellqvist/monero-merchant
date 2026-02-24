@@ -9,33 +9,39 @@ import java.time.format.DateTimeFormatter
 
 class PrinterRepository(private val printerServiceManager: PrinterServiceManager,
     private val dataStoreRepository: DataStoreRepository,
-    private val storageRepository: StorageRepository) {
+    private val storageRepository: StorageRepository,
+    private val errorRepository: ErrorRepository
+) {
 
     suspend fun printReceipt(paymentSuccess: PaymentSuccess) {
-        val success = printerServiceManager.updateEscPosPrinter()
-        Log.i("PrinterRepository", "updateEscPosPrinter: $success")
-        if (!success) {
-            return
-        }
-        val companyLogo = storageRepository.readImage("logo.png")
-        if (companyLogo != null) {
-            printerServiceManager.printPicture(companyLogo)
+        try {
+            val success = printerServiceManager.updateEscPosPrinter()
+            Log.i("PrinterRepository", "updateEscPosPrinter: $success")
+            if (!success) {
+                return
+            }
+            val companyLogo = storageRepository.readImage("logo.png")
+            if (companyLogo != null) {
+                printerServiceManager.printPicture(companyLogo)
+                printerServiceManager.printSpacer()
+            }
+            printerServiceManager.printTextCenter(dataStoreRepository.getCompanyName().first())
+            printerServiceManager.printTextCenter(dataStoreRepository.getContactInformation().first())
             printerServiceManager.printSpacer()
+            printerServiceManager.printText("Date: ${parseIsoDate(paymentSuccess.timestamp)}")
+            printerServiceManager.printText("Time: ${parseIsoTime(paymentSuccess.timestamp)}")
+            printerServiceManager.printSpacer()
+            printerServiceManager.printTextCenter("PURCHASE")
+            printerServiceManager.printText("TXID: ${paymentSuccess.txId}")
+            printerServiceManager.printText("XMR: ${paymentSuccess.xmrAmount}")
+            printerServiceManager.printText("${paymentSuccess.primaryFiatCurrency}: ${paymentSuccess.fiatAmount}")
+            printerServiceManager.printText("Exchange rate: ${paymentSuccess.exchangeRate} ${paymentSuccess.primaryFiatCurrency} / XMR")
+            printerServiceManager.printSpacer()
+            printerServiceManager.printTextCenter(dataStoreRepository.getReceiptFooter().first())
+            printerServiceManager.printEnd()
+        } catch (e: Exception) {
+            errorRepository.showError("Could not print: ${e.message}")
         }
-        printerServiceManager.printTextCenter(dataStoreRepository.getCompanyName().first())
-        printerServiceManager.printTextCenter(dataStoreRepository.getContactInformation().first())
-        printerServiceManager.printSpacer()
-        printerServiceManager.printText("Date: ${parseIsoDate(paymentSuccess.timestamp)}")
-        printerServiceManager.printText("Time: ${parseIsoTime(paymentSuccess.timestamp)}")
-        printerServiceManager.printSpacer()
-        printerServiceManager.printTextCenter("PURCHASE")
-        printerServiceManager.printText("TXID: ${paymentSuccess.txId}")
-        printerServiceManager.printText("XMR: ${paymentSuccess.xmrAmount}")
-        printerServiceManager.printText("${paymentSuccess.primaryFiatCurrency}: ${paymentSuccess.fiatAmount}")
-        printerServiceManager.printText("Exchange rate: ${paymentSuccess.exchangeRate} ${paymentSuccess.primaryFiatCurrency} / XMR")
-        printerServiceManager.printSpacer()
-        printerServiceManager.printTextCenter(dataStoreRepository.getReceiptFooter().first())
-        printerServiceManager.printEnd()
     }
 
     private fun parseIsoDate(isoDate: String): String {

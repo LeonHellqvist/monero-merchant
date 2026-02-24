@@ -32,6 +32,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
+import org.monerokon.xmrpos.ui.common.dialogs.error.ErrorDialog
 import org.monerokon.xmrpos.ui.payment.checkout.PaymentCheckoutScreenRoot
 import org.monerokon.xmrpos.ui.payment.checkout.PaymentCheckoutViewModel
 import org.monerokon.xmrpos.ui.payment.entry.PaymentEntryScreenRoot
@@ -167,6 +168,7 @@ fun NavGraphRoot(
         navController = navController,
         suppressedRoutes = setOf(PaymentCheckout::class.qualifiedName, PaymentSuccess::class.qualifiedName) as Set<String>
     )
+    ErrorDialog()
 }
 
 @Serializable

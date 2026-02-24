@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.monerokon.xmrpos.data.printer.PrinterServiceManager
 import org.monerokon.xmrpos.data.repository.DataStoreRepository
+import org.monerokon.xmrpos.data.repository.ErrorRepository
 import org.monerokon.xmrpos.data.repository.PrinterRepository
 import org.monerokon.xmrpos.data.repository.StorageRepository
 import javax.inject.Singleton
@@ -18,8 +19,8 @@ object PrinterModule {
 
     @Provides
     @Singleton
-    fun providePrinterRepository(printerServiceManager: PrinterServiceManager, dataStoreRepository: DataStoreRepository, storageRepository: StorageRepository): PrinterRepository {
-        return PrinterRepository(printerServiceManager, dataStoreRepository, storageRepository)
+    fun providePrinterRepository(printerServiceManager: PrinterServiceManager, dataStoreRepository: DataStoreRepository, storageRepository: StorageRepository, errorRepository: ErrorRepository): PrinterRepository {
+        return PrinterRepository(printerServiceManager, dataStoreRepository, storageRepository, errorRepository)
     }
 
     @Provides
