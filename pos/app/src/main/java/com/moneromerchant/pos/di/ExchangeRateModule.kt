@@ -21,7 +21,7 @@ object ExchangeRateModule {
     @Named("exchangeRateRetrofit")
     fun provideExchangeRateRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://min-api.cryptocompare.com/data/")
+            .baseUrl("https://api.coingecko.com/api/v3/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
