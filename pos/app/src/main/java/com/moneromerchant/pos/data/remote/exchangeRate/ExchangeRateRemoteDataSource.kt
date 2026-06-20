@@ -9,8 +9,14 @@ class ExchangeRateRemoteDataSource @Inject constructor(
 ) {
     suspend fun fetchExchangeRates(fromSymbol: String, toSymbols: List<String>): DataResult<ExchangeRateResponse> {
         return try {
-            val response = api.fetchExchangeRates(fromSymbol, toSymbols.joinToString(","))
-            DataResult.Success(response)
+            val ids = when (fromSymbol.uppercase()) {
+                "XMR", "MONERO" -> "monero"
+                else -> fromSymbol.lowercase()
+            }
+            val vsCurrencies = toSymbols.joinToString(",") { it.lowercase() }
+            val response = api.fetchExchangeRates(ids, vsCurrencies)
+            val rates = response[ids]?.mapKeys { it.key.uppercase() } ?: emptyMap()
+            DataResult.Success(rates)
         } catch (e: Exception) {
             DataResult.Failure(message = e.message ?: "Unknown error")
         }
