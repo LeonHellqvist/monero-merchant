@@ -1,0 +1,9 @@
+FROM alpine:latest
+RUN apk add --no-cache openssl ca-certificates
+WORKDIR /app
+COPY mm-backend-linux ./backend
+COPY docker-entrypoint.sh .
+COPY web/dashboard ./web/dashboard
+RUN chmod +x docker-entrypoint.sh backend
+EXPOSE 8080
+ENTRYPOINT ["./docker-entrypoint.sh"]

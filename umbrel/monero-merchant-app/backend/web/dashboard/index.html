@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monero Merchant Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070709;--bg2:#0b0b0f;--surface:#101015;--surface-2:#15151c;--surface-raised:#1a1a22;--surface-glass:rgba(20,20,27,.55);
+  --ink:#f6f5fa;--ink-dim:#9b97ad;--ink-faint:#605c75;
+  --accent:#ff6a2b;--accent-2:#ff9b45;--accent-glow:rgba(255,106,43,.35);--accent2:#16d8a8;--accent2-glow:rgba(22,216,168,.25);
+  --warn:#ffc23d;--danger:#ff5d5d;--blue:#7aa2f7;
+  --line:rgba(255,255,255,.07);--line-soft:rgba(255,255,255,.045);
+  --grad-accent:linear-gradient(135deg,var(--accent),var(--accent-2));
+  --elev:0 1px 0 rgba(255,255,255,.05) inset,0 12px 30px -16px rgba(0,0,0,.7);
+  --elev-lg:0 1px 0 rgba(255,255,255,.06) inset,0 30px 60px -24px rgba(0,0,0,.8);
+  --font-ui:'Instrument Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;
+}
+html,body{height:100%;font-family:var(--font-ui);background:var(--bg);color:var(--ink);overflow:hidden}
+
+/* Subtle gradient background instead of animated blur orbs */
+#ambient{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 50% at 20% 40%,rgba(255,107,53,.06),transparent 70%),radial-gradient(ellipse 60% 40% at 80% 60%,rgba(0,212,170,.04),transparent 70%)}
+
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:linear-gradient(180deg,var(--bg) 0%,transparent 100%)}
+.top-nav .brand{display:flex;align-items:center;gap:10px}
+.top-nav .brand-mark{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 20px var(--accent-glow)}
+.top-nav .brand-name{font-size:14px;font-weight:600;letter-spacing:-.3px}
+.top-nav .brand-name span{color:var(--accent)}
+.top-nav .live-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:var(--surface);border:1px solid rgba(255,255,255,.06);font-family:var(--font-mono);font-size:12px}
+.top-nav .live-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2-glow);animation:livePulse 2s infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.3}}
+.top-nav .live-pill .val{color:var(--ink-dim)}
+.top-nav .live-pill .val strong{color:var(--ink);margin-left:4px}
+.top-nav .nav-actions{display:flex;align-items:center;gap:12px}
+.top-nav .nav-actions .btn-sm{padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;border:none;font-family:var(--font-ui)}
+.top-nav .nav-actions .btn-logout{background:var(--surface-raised);color:var(--ink);border:1px solid rgba(255,255,255,.08)}
+.top-nav .nav-actions .btn-logout:hover{background:rgba(255,255,255,.05)}
+
+.app{display:flex;min-height:100vh}
+.sidebar{position:fixed;left:0;top:64px;bottom:0;width:220px;background:var(--surface);border-right:1px solid rgba(255,255,255,.06);padding:16px 0;z-index:40;display:flex;flex-direction:column}
+.sidebar .nav{flex:1}
+.sidebar .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;color:var(--ink-dim);cursor:pointer;transition:all .2s;border-left:3px solid transparent;font-size:13px}
+.sidebar .nav-item:hover{background:rgba(255,255,255,.03);color:var(--ink)}
+.sidebar .nav-item.active{background:rgba(255,107,53,.08);color:var(--accent);border-left-color:var(--accent)}
+.sidebar .nav-item svg{width:18px;height:18px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);margin-top:auto;font-size:12px;color:var(--ink-faint)}
+
+.main{flex:1;margin-left:220px;margin-top:64px;overflow-y:auto;overflow-x:hidden;padding:24px 32px 80px;position:relative;z-index:10;max-width:1200px}
+@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:16px}}
+
+.section{display:none}
+.section.active{display:block}
+.section-title{font-size:18px;font-weight:600;margin-bottom:20px;color:var(--ink)}
+
+.card{background:var(--surface);border:1px solid rgba(255,255,255,.04);border-radius:20px;padding:24px;margin-bottom:20px}
+.card .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card .card-title{font-size:14px;font-weight:600}
+.card .card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:8px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid rgba(255,255,255,.04);border-radius:16px;padding:20px}
+.stat-card .stat-label{font-size:12px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.stat-card .stat-value{font-family:var(--font-mono);font-size:26px;font-weight:600;color:var(--ink)}
+.stat-card .stat-value.xmr{color:var(--accent)}
+
+.glass-strip{display:flex;justify-content:space-around;align-items:center;padding:20px 24px;border-radius:16px;background:var(--surface-glass);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.06);margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.glass-strip .strip-item{text-align:center}
+.glass-strip .strip-item .s-lab{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--ink-faint);margin-bottom:4px}
+.glass-strip .s-val{font-family:var(--font-mono);font-size:18px;font-weight:600;color:var(--ink)}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:12px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-faint);font-weight:500;border-bottom:1px solid rgba(255,255,255,.06)}
+.data-table td{padding:12px 16px;color:var(--ink);border-bottom:1px solid rgba(255,255,255,.04)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.data-table .mono{font-family:var(--font-mono);font-size:12px}
+.data-table .actions{display:flex;gap:6px}
+.data-table .actions button{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .2s;font-family:var(--font-ui)}
+.data-table .actions .btn-send{background:rgba(0,212,170,.1);color:var(--accent2)}
+.data-table .actions .btn-send:hover{background:rgba(0,212,170,.2)}
+.data-table .actions .btn-del{background:rgba(255,77,77,.1);color:var(--danger)}
+.data-table .actions .btn-del:hover{background:rgba(255,77,77,.2)}
+.data-table .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.data-table .badge.confirmed{background:rgba(0,212,170,.12);color:var(--accent2)}
+.data-table .badge.pending{background:rgba(255,193,7,.12);color:var(--warn)}
+.data-table .badge.awaiting{background:rgba(255,255,255,.06);color:var(--ink-faint)}
+.data-table .badge.transferred{background:rgba(122,162,247,.12);color:#7aa2f7}
+
+.form{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.form .field{flex:1;min-width:200px}
+.form .field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:6px}
+.form .field input,.form .field select{width:100%;padding:12px 16px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);color:var(--ink);font-family:var(--font-ui);font-size:14px}
+.form .field input:focus,.form .field select:focus{outline:none;border-color:var(--accent)}
+.form .btn-submit{padding:12px 24px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--font-ui)}
+.form .btn-submit:hover{transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-glow)}
+.form .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+
+.code-display{font-family:var(--font-mono);font-size:13px;padding:14px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);color:var(--accent2);word-break:break-all;margin-top:12px;display:none;cursor:pointer}
+.code-display.show{display:block}
+.code-display:hover{background:rgba(0,212,170,.05)}
+
+.empty-state{text-align:center;padding:40px;color:var(--ink-faint);font-size:14px}
+.empty-state svg{width:48px;height:48px;margin-bottom:12px;opacity:.3}
+
+.modal-bg{position:fixed;inset:0;background:rgba(8,8,10,.8);backdrop-filter:blur(20px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .4s ease}
+.modal-bg.open{display:flex;opacity:1}
+.modal-card{width:100%;max-width:400px;padding:32px;border-radius:24px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 80px rgba(0,0,0,.4);transform:translateY(40px) scale(.95);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.modal-bg.open .modal-card{transform:translateY(0) scale(1)}
+.modal-card h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.modal-card p{color:var(--ink-dim);font-size:13px;margin-bottom:20px}
+.modal-card input{width:100%;padding:12px 14px;border-radius:12px;background:var(--surface);border:1px solid rgba(255,255,255,.08);color:var(--ink);font-family:var(--font-ui);font-size:14px;margin-bottom:16px}
+.modal-card input:focus{outline:none;border-color:var(--accent)}
+.modal-card .modal-btns{display:flex;gap:10px;margin-top:20px}
+.modal-card .modal-btns button{flex:1}
+
+.login-bg{position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-bg.hidden{display:none}
+.login-card{width:100%;max-width:380px;padding:40px;border-radius:32px;background:var(--surface);border:1px solid rgba(255,255,255,.06);text-align:center}
+.login-card .login-brand{width:48px;height:48px;border-radius:14px;margin:0 auto 20px;box-shadow:0 0 30px var(--accent-glow);display:block;object-fit:contain}
+.login-card h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.login-card p{color:var(--ink-dim);font-size:13px;margin-bottom:28px}
+.login-card .field{margin-bottom:14px;text-align:left}
+.login-card .field label{display:block;font-size:11px;color:var(--ink-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.login-card .field input{width:100%;padding:12px 14px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);color:var(--ink);font-family:var(--font-ui);font-size:14px}
+.login-card .field input:focus{outline:none;border-color:var(--accent)}
+.login-card .btn-login{width:100%;padding:12px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-weight:600;font-size:15px;cursor:pointer;transition:all .2s;font-family:var(--font-ui)}
+.login-card .btn-login:hover{transform:translateY(-1px);box-shadow:0 8px 24px var(--accent-glow)}
+.login-card .btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-card .login-error{color:var(--danger);font-size:12px;margin-top:10px;min-height:18px}
+
+.toast-wrap{position:fixed;top:80px;right:20px;z-index:999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{pointer-events:auto;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 18px;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:toastIn .5s cubic-bezier(.34,1.56,.64,1);max-width:320px;font-size:13px;color:var(--ink);font-weight:500;display:flex;align-items:center;gap:10px;backdrop-filter:blur(20px)}
+.toast .t-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex-shrink:0;font-size:13px}
+.toast.ok .t-icon{background:rgba(0,212,170,.15);color:var(--accent2)}
+.toast.err .t-icon{background:rgba(255,77,77,.15);color:var(--danger)}
+@keyframes toastIn{from{transform:translateX(60px) scale(.9);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
+
+.btn{appearance:none;border:none;padding:10px 20px;border-radius:12px;font-family:var(--font-ui);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s cubic-bezier(.4,0,.2,1)}
+.btn:hover{transform:translateY(-1px)}
+.btn-fill{background:var(--accent);color:#fff;box-shadow:0 4px 16px var(--accent-glow)}
+.btn-fill:hover{background:#ff5a1f}
+.btn-ghost{background:var(--surface);color:var(--ink);border:1px solid rgba(255,255,255,.08)}
+.btn-ghost:hover{background:rgba(255,255,255,.05)}
+.loading{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+
+/* Sync bar for Monero daemon */
+.sync-bar{margin-top:8px;padding:12px 16px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--ink-dim);display:flex;align-items:center;gap:12px}
+.sync-bar .sync-dot{width:8px;height:8px;border-radius:50%}
+.sync-bar.synced .sync-dot{background:var(--accent2);box-shadow:0 0 8px var(--accent2-glow)}
+.sync-bar.syncing .sync-dot{background:var(--warn);box-shadow:0 0 8px rgba(255,193,7,.3);animation:livePulse 1s infinite}
+.sync-bar.offline .sync-dot{background:var(--danger)}
+.sync-bar strong{color:var(--ink);font-weight:600}
+
+/* ── umbrel34 visual refresh (depth + polish) ───────────────────────── */
+#ambient{background:
+  radial-gradient(900px 480px at 16% -6%,rgba(255,106,43,.10),transparent 60%),
+  radial-gradient(700px 420px at 92% 8%,rgba(22,216,168,.05),transparent 60%),
+  radial-gradient(1200px 800px at 50% 120%,rgba(0,0,0,.6),transparent 70%),var(--bg)}
+#ambient::after{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px);background-size:24px 24px;-webkit-mask:radial-gradient(1000px 600px at 30% 0%,#000,transparent 75%);mask:radial-gradient(1000px 600px at 30% 0%,#000,transparent 75%)}
+
+.top-nav{background:linear-gradient(180deg,rgba(7,7,9,.92),rgba(7,7,9,.55) 70%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
+.top-nav .brand-mark{width:32px;height:32px;box-shadow:0 0 0 1px rgba(255,255,255,.1) inset,0 6px 18px -5px var(--accent-glow)}
+.top-nav .brand-name span{background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.top-nav .live-pill{border-radius:999px;background:var(--surface-2);box-shadow:var(--elev)}
+
+.sidebar{background:linear-gradient(180deg,var(--bg2),var(--bg));padding:18px 14px}
+.sidebar .nav-item{border-radius:11px;border-left:none;font-weight:500;position:relative}
+.sidebar .nav-item.active{background:linear-gradient(135deg,rgba(255,106,43,.18),rgba(255,106,43,.05));box-shadow:0 0 0 1px rgba(255,106,43,.22) inset;border-left:none}
+.sidebar .nav-item.active::before{content:"";position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:3px;height:20px;border-radius:0 3px 3px 0;background:var(--grad-accent);box-shadow:0 0 12px var(--accent-glow)}
+.sidebar .nav-item.active svg{color:var(--accent)}
+
+.section-title{font-size:22px;font-weight:700;letter-spacing:-.4px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0) 120px),var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--elev)}
+.card .card-title .dot{border-radius:2px;background:var(--grad-accent);box-shadow:0 0 8px var(--accent-glow)}
+
+.stat-card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),var(--surface);border:1px solid var(--line);box-shadow:var(--elev);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--elev-lg)}
+.stat-card .stat-value.xmr{background:var(--grad-accent);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.stat-card.feature{background:linear-gradient(135deg,rgba(255,106,43,.14),rgba(255,106,43,.02)),var(--surface)}
+.stat-card.feature::after{content:"";position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,var(--accent-glow),transparent 65%)}
+
+.glass-strip{border-radius:16px;border:1px solid var(--line);box-shadow:var(--elev)}
+
+.data-table .badge{display:inline-flex;align-items:center;gap:6px}
+.data-table .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
+
+.btn-fill,.form .btn-submit,.login-card .btn-login,.form .btn-submit:hover{background:var(--grad-accent);box-shadow:0 8px 22px -8px var(--accent-glow)}
+.btn-fill:hover,.form .btn-submit:hover,.login-card .btn-login:hover{filter:brightness(1.06);transform:translateY(-1px)}
+
+.login-bg{background:radial-gradient(800px 500px at 50% -10%,rgba(255,106,43,.12),transparent 60%),var(--bg)}
+.login-card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0) 140px),var(--surface);border:1px solid var(--line);box-shadow:var(--elev-lg);border-radius:26px}
+.login-card .login-brand{width:60px;height:60px;border-radius:18px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 12px 32px -6px var(--accent-glow)}
+.login-card .field input:focus,.form .field input:focus,.modal-card input:focus{box-shadow:0 0 0 4px rgba(255,106,43,.14)}
+
+.sync-bar{border-radius:13px;box-shadow:var(--elev)}
+.top-nav .nav-actions .btn-vendor{background:rgba(255,106,43,.12);color:var(--accent);border:1px solid rgba(255,106,43,.28);text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-radius:10px}
+.top-nav .nav-actions .btn-vendor:hover{background:rgba(255,106,43,.2)}
+</style>
+</head>
+<body>
+
+<div class="login-bg" id="loginBg">
+  <div class="login-card">
+    <img class="login-brand" src="/dashboard/logo.png" alt="Monero Merchant">
+    <h2>Monero Merchant</h2>
+    <p>Admin Dashboard</p>
+    <div class="field"><label>Username</label><input type="text" id="loginUser" value="admin" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" placeholder="set your password" autocomplete="current-password"></div>
+    <button class="btn-login" id="loginBtn">Sign In</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div class="login-bg hidden" id="setupBg">
+  <div class="login-card">
+    <img class="login-brand" src="/dashboard/logo.png" alt="Monero Merchant">
+    <h2>Set up your dashboard</h2>
+    <p>Choose an admin password to protect your store.</p>
+    <div class="field"><label>Admin Password</label><input type="password" id="setupPass" autocomplete="new-password" placeholder="At least 6 characters"></div>
+    <div class="field"><label>Confirm Password</label><input type="password" id="setupConfirm" autocomplete="new-password"></div>
+    <button class="btn-login" id="setupBtn">Create Dashboard</button>
+    <button class="btn-login" id="setupSkipBtn" style="background:var(--surface-2);color:var(--ink-dim);box-shadow:none;border:1px solid var(--line);margin-top:10px">Skip — set it later</button>
+    <div class="login-error" id="setupError"></div>
+    <p style="font-size:12px;color:var(--ink-faint);margin-top:14px;margin-bottom:0">Skipping keeps the dashboard open on your home network until you set one.</p>
+  </div>
+</div>
+
+<div id="ambient"></div>
+
+<nav class="top-nav" id="topNav" style="display:none">
+    <div class="brand">
+      <div class="brand-mark"><img src="/dashboard/logo.png" alt="MM" style="width:100%;height:100%;object-fit:contain"></div>
+      <div class="brand-name">Monero <span>Merchant</span></div>
+    </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <div class="live-pill" id="statusPill"><span class="dot" id="statusDot"></span><span class="val" id="statusText">Checking...</span></div>
+    <div class="nav-actions"><a href="/store" target="_blank" rel="noopener" class="btn-sm btn-vendor" id="vendorPortalLink">Vendor Portal ↗</a><button class="btn-sm btn-logout" id="logoutBtn">Logout</button></div>
+  </div>
+</nav>
+
+<div class="app" id="appScreen" style="display:none">
+  <aside class="sidebar">
+    <div class="nav">
+      <div class="nav-item active" data-nav="home"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg>Home</div>
+      <div class="nav-item" data-nav="dashboard"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+      <div class="nav-item" data-nav="vendors"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Vendors</div>
+      <div class="nav-item" data-nav="transactions"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Transactions</div>
+      <div class="nav-item" data-nav="pos"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 12h6"/></svg>POS Devices</div>
+      <div class="nav-item" data-nav="invites"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>Invites</div>
+      <div class="nav-item" data-nav="settings"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>Settings</div>
+    </div>
+    <div class="sidebar-footer">v2.1.0 Admin</div>
+  </aside>
+
+  <main class="main">
+    <div class="section active" id="sec-home">
+      <div class="section-title">Welcome to Monero Merchant</div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Wallet Address</h3></div>
+        <div id="homeWalletWrap">
+          <div class="empty-state">Loading wallet info...</div>
+        </div>
+      </div>
+      <div class="card" id="homeWalletSetupCard" style="display:none">
+        <div class="card-header"><h3 class="card-title"><span class="dot" style="background:var(--warn)"></span>Wallet Setup</h3></div>
+        <div style="display:grid;gap:12px">
+          <p style="font-size:13px;color:var(--ink-dim)">No wallet file found. Create a new wallet or restore from seed.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-fill" id="setupWalletBtn">Create New Wallet</button>
+            <button class="btn btn-ghost" id="restoreWalletBtn">Restore from Seed</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="homeRestoreCard" style="display:none">
+        <div class="card-header"><h3 class="card-title"><span class="dot" style="background:var(--accent2)"></span>Restore Wallet</h3></div>
+        <div style="display:grid;gap:12px">
+          <div class="field"><label>Mnemonic Seed (25 words)</label><textarea id="restoreSeed" rows="3" style="width:100%;padding:12px 16px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);color:var(--ink);font-family:var(--font-ui);font-size:14px;resize:vertical"></textarea></div>
+          <div class="field"><label>Restore Height (optional — leave 0 for scan from beginning)</label><input type="number" id="restoreHeight" value="0" min="0"></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-fill" id="confirmRestoreBtn">Restore</button>
+            <button class="btn btn-ghost" id="cancelRestoreBtn">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Connection Info</h3></div>
+        <div id="homeConnWrap">
+          <div class="empty-state">Loading connection info...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card feature"><div class="stat-label">Wallet Total</div><div class="stat-value xmr" id="dashTotal">-- XMR</div></div>
+        <div class="stat-card"><div class="stat-label">Unlocked</div><div class="stat-value" id="dashUnlocked">-- XMR</div></div>
+        <div class="stat-card"><div class="stat-label">Vendors</div><div class="stat-value" id="dashVendors">--</div></div>
+        <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value" id="dashTx">--</div></div>
+      </div>
+      <div class="glass-strip">
+        <div class="strip-item"><div class="s-lab">Locked</div><div class="s-val" id="stripLocked">--</div></div>
+        <div class="strip-item"><div class="s-lab">PostgreSQL</div><div class="s-val" id="stripDb">--</div></div>
+        <div class="strip-item"><div class="s-lab">MoneroPay</div><div class="s-val" id="stripMp">--</div></div>
+        <div class="strip-item"><div class="s-lab">POS Devices</div><div class="s-val" id="stripPos">--</div></div>
+        <div class="strip-item"><div class="s-lab">Invites</div><div class="s-val" id="stripInvites">--</div></div>
+      </div>
+      <div class="sync-bar syncing" id="syncBar" style="display:none">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">Checking Monero node...</span>
+      </div>
+      <div class="card" style="margin-top:8px">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Recent Transactions</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" id="viewAllTxBtn">View All</button></div>
+        <div id="dashTxWrap"><div class="empty-state">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-vendors">
+      <div class="section-title">Vendors</div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Registered Vendors</h3><button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" id="createInviteBtn">Create Invite</button></div>
+        <div id="vendorsWrap"><div class="empty-state"><span class="loading"></span></div></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-transactions">
+      <div class="section-title">Transactions</div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>All Transactions</h3></div>
+        <div id="txWrap"><div class="empty-state"><span class="loading"></span></div></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-pos">
+      <div class="section-title">POS Devices</div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>All POS Devices</h3></div>
+        <div id="posWrap"><div class="empty-state"><span class="loading"></span></div></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-invites">
+      <div class="section-title">Invites</div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Create Invite</h3></div>
+        <div class="form">
+          <div class="field"><label>Valid for</label><select id="inviteValidDays"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option><option value="365">1 year</option></select></div>
+          <div class="field"><label>Forced Vendor Name (optional)</label><input type="text" id="inviteForced" placeholder="Leave blank for any name"></div>
+          <button class="btn-submit" id="inviteBtn">Create</button>
+        </div>
+        <div class="code-display" id="inviteCodeDisplay"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span>Existing Invites</h3></div>
+        <div id="invitesWrap"><div class="empty-state"><span class="loading"></span></div></div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-settings">
+      <div class="section-title">Settings</div>
+      <div class="card" style="max-width:640px">
+        <div class="card-header"><h3 class="card-title"><span class="dot"></span><span id="pwdTitle">Change Admin Password</span></h3></div>
+        <div id="pwdCurrentWrap" class="field" style="margin-bottom:14px"><label>Current Password</label><input type="password" id="pwdCurrent" autocomplete="current-password"></div>
+        <div class="field" style="margin-bottom:14px"><label id="pwdNewLabel">New Password</label><input type="password" id="pwdNew" autocomplete="new-password"></div>
+        <div class="field" style="margin-bottom:14px"><label>Confirm Password</label><input type="password" id="pwdConfirm" autocomplete="new-password"></div>
+        <button class="btn-submit" id="pwdBtn">Update Password</button>
+      </div>
+      <div class="card" style="max-width:640px">
+        <div class="card-header"><h3 class="card-title"><span class="dot" style="background:var(--accent2)"></span>Wallet Seed Backup</h3></div>
+        <p style="font-size:13px;color:var(--ink-dim);margin-bottom:14px">Store your seed phrase somewhere safe. Anyone with this phrase can access your funds.</p>
+        <button class="btn btn-ghost" id="showSeedBtn" style="margin-bottom:12px">Reveal Seed Phrase</button>
+        <div id="seedDisplay" style="display:none;font-family:var(--font-mono);font-size:13px;padding:14px;border-radius:12px;background:var(--surface-raised);border:1px solid rgba(255,255,255,.08);color:var(--ink);word-break:break-all;line-height:1.6"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-bg" id="xferModal">
+  <div class="modal-card">
+    <h3>Transfer Balance</h3>
+    <p>Initiate transfer for <strong id="xferVendorName"></strong></p>
+    <input type="hidden" id="xferVendorId">
+    <div class="modal-btns"><button class="btn btn-fill" id="xferConfirmBtn">Confirm</button><button class="btn btn-ghost" id="xferCancelBtn">Cancel</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const $=id=>document.getElementById(id),ATOMIC=1e12;
+let tokens={access:null,refresh:null},dataCache={vendors:[],txs:[],pos:[],invites:[]},passwordSet=true;
+
+async function init(){
+  try{
+    const sr=await fetch('/auth/admin-status');
+    const sd=await sr.json().catch(()=>({}));
+    passwordSet = sd.password_set !== false;
+  }catch(e){passwordSet=true;}
+
+  const s=localStorage.getItem('mm_tokens');
+  if(s){try{tokens=JSON.parse(s);if(tokens.access){showApp();loadAll();updateSettingsUI();return;}}catch(e){}}
+
+  // First run (no admin password set): show the setup screen instead of the login form
+  if(!passwordSet){
+    $('loginBg').classList.add('hidden');
+    $('setupBg').classList.remove('hidden');
+  }
+}
+
+async function doSetupCreate(){
+  const p=$('setupPass').value,c=$('setupConfirm').value;
+  $('setupError').textContent='';
+  if(p.length<6){$('setupError').textContent='At least 6 characters';return;}
+  if(p!==c){$('setupError').textContent='Passwords do not match';return;}
+  $('setupBtn').disabled=true;
+  try{
+    const lr=await fetch('/auth/login-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'admin',password:''})});
+    const ld=await lr.json().catch(()=>({}));
+    if(!lr.ok){$('setupError').textContent=ld.error||'Setup failed';return;}
+    tokens.access=ld.access_token;tokens.refresh=ld.refresh_token;
+    const ur=await api('POST','/auth/update-password',{current_password:'',new_password:p});
+    const ud=await ur.json().catch(()=>({}));
+    if(!ur.ok){$('setupError').textContent=ud.error||'Could not set password';return;}
+    tokens.access=ud.access_token;tokens.refresh=ud.refresh_token;saveTokens();
+    passwordSet=true;updateSettingsUI();showApp();loadAll();
+  }catch(e){$('setupError').textContent='Network error';}
+  finally{$('setupBtn').disabled=false;}
+}
+
+async function doSetupSkip(){
+  $('setupSkipBtn').disabled=true;
+  try{
+    const lr=await fetch('/auth/login-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'admin',password:''})});
+    const ld=await lr.json().catch(()=>({}));
+    if(!lr.ok){$('setupError').textContent=ld.error||'Failed';return;}
+    tokens.access=ld.access_token;tokens.refresh=ld.refresh_token;saveTokens();
+    passwordSet=false;updateSettingsUI();showApp();loadAll();
+  }catch(e){$('setupError').textContent='Network error';}
+  finally{$('setupSkipBtn').disabled=false;}
+}
+
+function saveTokens(){localStorage.setItem('mm_tokens',JSON.stringify(tokens));}
+function clearTokens(){tokens={access:null,refresh:null};localStorage.removeItem('mm_tokens');}
+
+async function doLogin(){
+  const u=$('loginUser').value.trim(),p=$('loginPass').value;
+  $('loginError').textContent='';$('loginBtn').disabled=true;
+  try{
+    const r=await fetch('/auth/login-admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:u,password:p})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){$('loginError').textContent=d.error||'Invalid credentials';return;}
+    tokens.access=d.access_token;tokens.refresh=d.refresh_token;saveTokens();showApp();loadAll();
+  }catch(e){$('loginError').textContent='Network error: '+e.message;
+  }finally{$('loginBtn').disabled=false;}
+}
+function doLogout(){clearTokens();$('loginBg').classList.remove('hidden');$('topNav').style.display='none';$('appScreen').style.display='none';$('loginPass').value='';}
+function showApp(){$('loginBg').classList.add('hidden');var sb=$('setupBg');if(sb)sb.classList.add('hidden');$('topNav').style.display='flex';$('appScreen').style.display='flex';}
+
+function updateSettingsUI(){
+  const pw=$('pwdCurrentWrap'),tl=$('pwdTitle'),nl=$('pwdNewLabel');
+  if(passwordSet){pw.style.display='block';tl.textContent='Change Admin Password';nl.textContent='New Password';}
+  else{pw.style.display='none';tl.textContent='Set Admin Password';nl.textContent='Password';}
+}
+
+async function api(method,path,body){
+  const h={'Content-Type':'application/json'};
+  if(tokens.access)h['Authorization']='Bearer '+tokens.access;
+  const opts={method,headers:h};if(body)opts.body=JSON.stringify(body);
+  let r=await fetch(path,opts);
+  if(r.status===401&&tokens.refresh){
+    const rr=await fetch('/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:tokens.refresh})});
+    if(rr.ok){const d=await rr.json();tokens.access=d.access_token;tokens.refresh=d.refresh_token||tokens.refresh;saveTokens();h['Authorization']='Bearer '+tokens.access;r=await fetch(path,{method,headers:h,body:body?JSON.stringify(body):undefined});}
+    else{doLogout();throw new Error('Session expired');}
+  }
+  return r;
+}
+
+function esc(s){if(s==null)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));}
+function fmtXMR(a){if(a==null)return'--';return(a/ATOMIC).toFixed(6)+' XMR';}
+function fmtDate(s){if(!s)return'-';const d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function toast(msg,ok){const e=document.createElement('div');e.className='toast '+(ok?'ok':'err');const icon=document.createElement('div');icon.className='t-icon';icon.textContent=ok?'OK':'!';e.appendChild(icon);const span=document.createElement('span');span.textContent=msg;e.appendChild(span);$('toastWrap').appendChild(e);setTimeout(()=>{e.style.opacity='0';e.style.transform='translateX(20px)';setTimeout(()=>e.remove(),300)},3500);}
+function legacyCopy(t){
+  try{
+    const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');
+    ta.style.position='fixed';ta.style.top='-1000px';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);
+    const ok=document.execCommand('copy');document.body.removeChild(ta);
+    toast(ok?'Copied':'Copy failed (select manually)',ok?'ok':'err');
+  }catch(e){toast('Copy failed (select manually)','err');}
+}
+function copy(t){
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(t).then(()=>toast('Copied','ok')).catch(()=>legacyCopy(t));
+  }else{legacyCopy(t);}
+}
+
+async function loadAll(){await Promise.all([fetchHealth(),fetchVendors(),fetchTx(),fetchPos(),fetchInvites(),fetchDaemonStatus(),fetchBalance(),fetchWalletInfo(),fetchConnectionInfo()]);}
+async function fetchHealth(){
+  try{const r=await api('GET','/misc/health'),d=await r.json().catch(()=>({}));
+    const svc=d.services||{},dbOk=svc.postgresql;
+    // MoneroPay health: it returns {status:200, services:{walletrpc,postgresql}} when OK
+    const mpData=svc.MoneroPay||{};
+    const mpOk=mpData.status===200||mpData.status==='OK'||(typeof mpData==='object'&&mpData.status!==undefined&&mpData.status!==503);
+    const walletOk=typeof mpData==='object'&&mpData.services?mpData.services.walletrpc:false;
+
+    // Live pill shows overall service status
+    const allOk=dbOk&&mpOk;
+    $('statusDot').style.background=allOk?'var(--accent2)':'var(--warn)';
+    $('statusDot').style.boxShadow=allOk?'0 0 8px var(--accent2-glow)':'0 0 8px rgba(255,193,7,.3)';
+    if(!dbOk&&!mpOk) $('statusText').innerHTML='Services <strong>DB + MoneroPay Down</strong>';
+    else if(!dbOk) $('statusText').innerHTML='Services <strong>DB Down</strong>';
+    else if(!mpOk) $('statusText').innerHTML='Services <strong>MoneroPay Down</strong>';
+    else $('statusText').innerHTML='Services <strong>OK</strong>';
+
+    $('stripDb').textContent=dbOk?'OK':'Down';$('stripDb').style.color=dbOk?'var(--accent2)':'var(--danger)';
+    $('stripMp').textContent=mpOk?'OK':'Down';$('stripMp').style.color=mpOk?'var(--accent2)':'var(--warn)';
+  }catch(e){$('statusDot').style.background='var(--danger)';$('statusText').innerHTML='Services <strong>Offline</strong>';}
+}
+async function fetchDaemonStatus(){
+  try{
+    const r=await api('GET','/api/daemon-status'),d=await r.json().catch(()=>({}));
+    const bar=$('syncBar'),txt=$('syncText'),dot=$('syncDot');
+    if(!bar)return;
+    bar.style.display='flex';
+    if(d.synced){
+      bar.className='sync-bar synced';txt.innerHTML='<strong>Monero Node:</strong> Synced at height '+d.height.toLocaleString();
+    }else if(d.height>0){
+      bar.className='sync-bar syncing';txt.innerHTML='<strong>Monero Node:</strong> Syncing — height '+d.height.toLocaleString()+(d.target_height?' / '+d.target_height.toLocaleString():'');
+    }else{
+      bar.className='sync-bar offline';txt.innerHTML='<strong>Monero Node:</strong> Unreachable';
+    }
+  }catch(e){if($('syncBar'))$('syncBar').style.display='none';}
+}
+async function fetchVendors(){
+  try{const r=await api('GET','/admin/vendors'),d=await r.json().catch(()=>({}));
+    dataCache.vendors=d.vendors||[];
+    $('dashVendors').textContent=dataCache.vendors.length;
+    renderVendors();updateStats();
+  }catch(e){toast('Failed to load vendors','err');}
+}
+async function fetchTx(){
+  try{const r=await api('GET','/admin/transactions'),d=await r.json().catch(()=>({}));
+    dataCache.txs=d.transactions||[];
+    $('dashTx').textContent=dataCache.txs.length;
+    renderTx();renderDashTx();
+  }catch(e){toast('Failed to load transactions','err');}
+}
+async function fetchPos(){
+  try{const r=await api('GET','/admin/pos-devices'),d=await r.json().catch(()=>({}));
+    dataCache.pos=d.devices||[];
+    $('stripPos').textContent=dataCache.pos.length;
+    renderPos();
+  }catch(e){toast('Failed to load POS devices','err');}
+}
+async function fetchInvites(){
+  try{const r=await api('GET','/admin/invites'),d=await r.json().catch(()=>({}));
+    dataCache.invites=d.invites||[];
+    $('stripInvites').textContent=dataCache.invites.length;
+    renderInvites();
+  }catch(e){toast('Failed to load invites','err');}
+}
+async function fetchBalance(){
+  try{const r=await api('GET','/admin/balance'),d=await r.json().catch(()=>({}));
+    const t=(d.total/ATOMIC).toFixed(6),u=(d.unlocked/ATOMIC).toFixed(6),l=(d.locked/ATOMIC).toFixed(6);
+    $('dashTotal').textContent=t+' XMR';$('dashUnlocked').textContent=u+' XMR';$('stripLocked').textContent=l;
+  }catch(e){}
+}
+async function fetchWalletInfo(){
+  try{const r=await api('GET','/admin/wallet-info'),d=await r.json().catch(()=>({}));
+    const wrap=$('homeWalletWrap'),setup=$('homeWalletSetupCard'),restore=$('homeRestoreCard');
+    if(!wrap)return;
+    if(d.address){
+      wrap.innerHTML='<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface-raised);border-radius:12px;flex-wrap:wrap">'+
+        '<div style="font-family:var(--font-mono);font-size:14px;word-break:break-all;flex:1">'+esc(d.address)+'</div>'+
+        '<button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="copy(\''+esc(d.address)+'\')">Copy</button>'+
+        '</div>'+
+        '<div style="margin-top:8px;font-size:12px;color:var(--ink-dim)">Wallet: '+esc(d.wallet_name||'merchant_wallet')+'</div>';
+      if(setup)setup.style.display='none';
+      if(restore)restore.style.display='none';
+    }else{
+      wrap.innerHTML='<div class="empty-state">No wallet configured</div>';
+      if(setup)setup.style.display='block';
+    }
+  }catch(e){$('homeWalletWrap').innerHTML='<div class="empty-state">Failed to load wallet info</div>';}
+}
+
+async function doSetupWallet(){
+  $('setupWalletBtn').disabled=true;
+  try{
+    const r=await api('POST','/admin/setup-wallet',{});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){toast(d.error||'Wallet creation failed','err');return;}
+    toast('Wallet created','ok');
+    $('homeWalletSetupCard').style.display='none';
+    await fetchWalletInfo();
+    await fetchBalance();
+  }catch(e){toast('Wallet creation failed','err');}
+  finally{$('setupWalletBtn').disabled=false;}
+}
+
+function showRestoreCard(){
+  $('homeWalletSetupCard').style.display='none';
+  $('homeRestoreCard').style.display='block';
+}
+function hideRestoreCard(){
+  $('homeRestoreCard').style.display='none';
+  $('homeWalletSetupCard').style.display='block';
+}
+
+async function doRestoreWallet(){
+  const seed=$('restoreSeed').value.trim();
+  const height=parseInt($('restoreHeight').value)||0;
+  if(!seed){toast('Seed phrase required','err');return;}
+  $('confirmRestoreBtn').disabled=true;
+  try{
+    const r=await api('POST','/admin/restore-wallet',{seed,restore_height:height});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){toast(d.error||'Restore failed','err');return;}
+    toast('Wallet restored','ok');
+    $('homeRestoreCard').style.display='none';
+    $('restoreSeed').value='';
+    await fetchWalletInfo();
+    await fetchBalance();
+  }catch(e){toast('Restore failed','err');}
+  finally{$('confirmRestoreBtn').disabled=false;}
+}
+
+async function doShowSeed(){
+  const disp=$('seedDisplay');
+  if(disp.style.display==='block'){disp.style.display='none';$('showSeedBtn').textContent='Reveal Seed Phrase';return;}
+  try{
+    const r=await api('GET','/admin/wallet-seed');
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.seed){toast('Could not retrieve seed','err');return;}
+    disp.textContent=d.seed;
+    disp.style.display='block';
+    $('showSeedBtn').textContent='Hide Seed Phrase';
+  }catch(e){toast('Failed to retrieve seed','err');}
+}
+
+async function fetchConnectionInfo(){
+  try{const r=await api('GET','/admin/connection-info'),d=await r.json().catch(()=>({}));
+    const wrap=$('homeConnWrap');
+    if(!wrap)return;
+    let h='<div style="display:grid;gap:12px">';
+    h+='<div><div style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Backend URL</div>'+
+      '<div style="font-family:var(--font-mono);font-size:13px;background:var(--surface-raised);padding:10px 12px;border-radius:8px">'+window.location.origin+'</div></div>';
+    if(d.admin_token){
+      h+='<div><div style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Admin Token (for POS client config)</div>'+
+        '<div style="display:flex;align-items:center;gap:10px"><div style="font-family:var(--font-mono);font-size:12px;background:var(--surface-raised);padding:10px 12px;border-radius:8px;flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(d.admin_token.substring(0,30))+'...</div>'+
+        '<button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="copy(\''+esc(d.admin_token)+'\')">Copy</button></div></div>';
+    }
+    if(d.endpoints){
+      h+='<div><div style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">API Endpoints</div>'+
+        '<div style="font-family:var(--font-mono);font-size:12px;background:var(--surface-raised);padding:10px 12px;border-radius:8px;display:grid;gap:4px">';
+      for(const[k,v]of Object.entries(d.endpoints)){h+='<div>'+esc(k)+': <span style="color:var(--accent2)">'+esc(v)+'</span></div>';}
+      h+='</div></div>';
+    }
+    h+='</div>';
+    wrap.innerHTML=h;
+  }catch(e){$('homeConnWrap').innerHTML='<div class="empty-state">Failed to load connection info</div>';}
+}
+
+function renderVendors(){
+  const c=dataCache.vendors;
+  if(!c.length){$('vendorsWrap').innerHTML='<div class="empty-state"><div>No vendors registered yet</div><div style="font-size:12px;margin-top:8px">Create an invite to add vendors</div></div>';return;}
+  let h='<table class="data-table"><thead><tr><th>Name</th><th>Subaddress</th><th>Balance</th><th>Actions</th></tr></thead><tbody>';
+  c.forEach(v=>{const balRaw=v.balance||0;const bal=(balRaw/ATOMIC).toFixed(6);const addr=v.monero_subaddress?v.monero_subaddress.substring(0,10)+'...':'--';
+    const xferBtn=balRaw>0?'<button class="btn-send" data-action="xfer" data-id="'+v.id+'" data-name="'+esc(v.name)+'">Transfer</button>':'<button class="btn-send" disabled title="No balance to transfer" style="opacity:.4;cursor:not-allowed">Transfer</button>';
+    h+='<tr><td><strong>'+esc(v.name)+'</strong></td><td class="mono" title="'+esc(v.monero_subaddress)+'">'+esc(addr)+'</td><td class="mono">'+bal+' XMR</td><td class="actions">'+xferBtn+'<button class="btn-del" data-action="del" data-id="'+v.id+'" data-name="'+esc(v.name)+'">Delete</button></td></tr>';
+  });
+  h+='</tbody></table>';$('vendorsWrap').innerHTML=h;
+  document.querySelectorAll('#vendorsWrap [data-action]').forEach(b=>{
+    b.addEventListener('click',function(){
+      const action=this.dataset.action,id=this.dataset.id,name=this.dataset.name;
+      if(action==='xfer')openXfer(id,name);else if(action==='del')delVendor(id,name);
+    });
+  });
+}
+function renderTx(){
+  const c=dataCache.txs;
+  if(!c.length){$('txWrap').innerHTML='<div class="empty-state"><div>No transactions yet</div></div>';return;}
+  let h='<table class="data-table"><thead><tr><th>ID</th><th>Vendor</th><th>POS</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>';
+  c.forEach(tx=>{
+    const v=tx.Vendor||{},pos=tx.Pos||{};const st=tx.Transferred?'transferred':tx.Confirmed?'confirmed':tx.Accepted?'pending':'awaiting';
+    const badge='<span class="badge '+st+'">'+st.charAt(0).toUpperCase()+st.slice(1)+'</span>';
+    h+='<tr><td>#'+tx.ID+'</td><td>'+esc(v.Name||'-')+'</td><td>'+esc(pos.Name||'-')+'</td><td class="mono">'+fmtXMR(tx.Amount)+'</td><td>'+badge+'</td><td class="mono">'+fmtDate(tx.CreatedAt)+'</td></tr>';
+  });
+  h+='</tbody></table>';$('txWrap').innerHTML=h;
+}
+function renderDashTx(){
+  const c=dataCache.txs.slice(0,5);
+  if(!c.length){$('dashTxWrap').innerHTML='<div class="empty-state">No recent transactions</div>';return;}
+  let h='<table class="data-table"><thead><tr><th>ID</th><th>Vendor</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+  c.forEach(tx=>{const v=tx.Vendor||{};const st=tx.Transferred?'transferred':tx.Confirmed?'confirmed':tx.Accepted?'pending':'awaiting';
+    h+='<tr><td>#'+tx.ID+'</td><td>'+esc(v.Name||'-')+'</td><td class="mono">'+fmtXMR(tx.Amount)+'</td><td><span class="badge '+st+'">'+st+'</span></td></tr>';
+  });
+  h+='</tbody></table>';$('dashTxWrap').innerHTML=h;
+}
+function renderPos(){
+  const c=dataCache.pos;
+  if(!c.length){$('posWrap').innerHTML='<div class="empty-state"><div>No POS devices registered</div></div>';return;}
+  let h='<table class="data-table"><thead><tr><th>ID</th><th>Name</th><th>Vendor</th><th>Created</th></tr></thead><tbody>';
+  c.forEach(p=>{const v=p.Vendor||{};h+='<tr><td>#'+p.ID+'</td><td><strong>'+esc(p.name)+'</strong></td><td>'+esc(v.name||'-')+'</td><td class="mono">'+fmtDate(p.created_at||p.CreatedAt)+'</td></tr>';});
+  h+='</tbody></table>';$('posWrap').innerHTML=h;
+}
+function renderInvites(){
+  const c=dataCache.invites;
+  if(!c.length){$('invitesWrap').innerHTML='<div class="empty-state"><div>No invites created</div></div>';return;}
+  let h='<table class="data-table"><thead><tr><th>Code</th><th>Used</th><th>Forced Name</th><th>Valid Until</th></tr></thead><tbody>';
+  c.forEach(i=>{h+='<tr><td class="mono">'+esc(i.invite_code||i.InviteCode)+'</td><td>'+(i.used||i.Used?'Yes':'No')+'</td><td>'+esc(i.forced_name||i.ForcedName||'-')+'</td><td class="mono">'+fmtDate(i.valid_until||i.ValidUntil)+'</td></tr>';});
+  h+='</tbody></table>';$('invitesWrap').innerHTML=h;
+}
+function updateStats(){}
+
+async function createInvite(){
+  const days=parseInt($('inviteValidDays').value)||30;
+  const vu=Math.floor(Date.now()/1000)+days*86400;
+  const fn=$('inviteForced').value.trim()||null;
+  $('inviteBtn').disabled=true;
+  try{const r=await api('POST','/admin/invite',{valid_until:vu,forced_name:fn});const d=await r.json().catch(()=>({}));
+    if(!r.ok){toast(d.error||'Failed','err');return;}
+    $('inviteCodeDisplay').textContent=d.invite_code||'Invite created';$('inviteCodeDisplay').classList.add('show');toast('Invite created','ok');await fetchInvites();
+  }catch(e){toast('Failed','err');}finally{$('inviteBtn').disabled=false;}
+}
+function openXfer(id,name){$('xferVendorId').value=id;$('xferVendorName').textContent=name;$('xferModal').classList.add('open');}
+function closeXfer(){$('xferModal').classList.remove('open');}
+async function readErr(r,fallback){
+  try{const ct=r.headers.get('content-type')||'';
+    if(ct.indexOf('json')>=0){const d=await r.json();return d.message||d.error||fallback;}
+    const t=(await r.text()).trim();return t||fallback;
+  }catch(e){return fallback;}
+}
+async function confirmXfer(){
+  const id=parseInt($('xferVendorId').value);closeXfer();
+  try{const r=await api('POST','/admin/transfer-balance',{vendor_id:id});
+    if(!r.ok){let msg=await readErr(r,'Transfer failed');if(/no transferable|no confirmed|balance/i.test(msg))msg='No confirmed balance to transfer yet';toast(msg,'err');return;}
+    toast('Transfer initiated','ok');await Promise.all([fetchBalance(),fetchVendors()]);
+  }catch(e){toast('Transfer failed','err');}
+}
+async function delVendor(id,name){
+  if(!confirm('Delete vendor "'+name+'"?'))return;
+  try{const r=await api('POST','/admin/delete',{vendor_id:id});
+    if(!r.ok){toast(await readErr(r,'Delete failed'),'err');return;}
+    toast('Vendor deleted','ok');await fetchVendors();
+  }catch(e){toast('Delete failed','err');}
+}
+
+async function changePassword(){
+  const cur=$('pwdCurrent').value, nw=$('pwdNew').value, cf=$('pwdConfirm').value;
+  if(!nw){toast('Password required','err');return;}
+  if(passwordSet&&!cur){toast('Current password required','err');return;}
+  if(nw!==cf){toast('Passwords do not match','err');return;}
+  if(nw.length<6){toast('Minimum 6 characters','err');return;}
+  $('pwdBtn').disabled=true;
+  try{const r=await api('POST','/auth/update-password',{current_password:cur,new_password:nw});const d=await r.json().catch(()=>({}));
+    if(!r.ok){toast(d.error||'Update failed','err');$('pwdBtn').disabled=false;return;}
+    tokens.access=d.access_token;tokens.refresh=d.refresh_token;localStorage.setItem('mm_tokens',JSON.stringify(tokens));
+    toast('Password updated — please login again','ok');
+    $('pwdCurrent').value='';$('pwdNew').value='';$('pwdConfirm').value='';
+    passwordSet=true;updateSettingsUI();
+    setTimeout(()=>{clearTokens();doLogout();},1200);
+  }catch(e){toast('Update failed','err');}finally{$('pwdBtn').disabled=false;}
+}
+
+function navTo(page){
+  // Remove active from all nav items
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  // Hide all sections: remove both active class AND inline display
+  document.querySelectorAll('.section').forEach(el=>{el.classList.remove('active');el.style.display='';});
+  // Activate target nav
+  const idx=['home','dashboard','vendors','transactions','pos','invites','settings'].indexOf(page);
+  if(idx>=0)document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  // Show target section
+  const sec=$('sec-'+page);
+  if(sec){sec.classList.add('active');sec.style.display='';}
+  // Scroll main area to top
+  document.querySelector('.main')?.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  $('loginBtn').addEventListener('click',doLogin);
+  $('loginPass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+  $('setupBtn').addEventListener('click',doSetupCreate);
+  $('setupSkipBtn').addEventListener('click',doSetupSkip);
+  $('setupConfirm').addEventListener('keydown',function(e){if(e.key==='Enter')doSetupCreate();});
+  $('logoutBtn').addEventListener('click',doLogout);
+  document.querySelectorAll('.nav-item[data-nav]').forEach(el=>{
+    el.addEventListener('click',function(){navTo(this.dataset.nav);});
+  });
+  $('viewAllTxBtn').addEventListener('click',function(){navTo('transactions');});
+  $('createInviteBtn').addEventListener('click',function(){navTo('invites');});
+  $('inviteBtn').addEventListener('click',createInvite);
+  $('inviteCodeDisplay').addEventListener('click',function(){copy(this.textContent);});
+  $('pwdBtn').addEventListener('click',changePassword);
+  $('xferConfirmBtn').addEventListener('click',confirmXfer);
+  $('xferCancelBtn').addEventListener('click',closeXfer);
+  $('xferModal').addEventListener('click',function(e){if(e.target===this)closeXfer();});
+  $('setupWalletBtn').addEventListener('click',doSetupWallet);
+  $('restoreWalletBtn').addEventListener('click',showRestoreCard);
+  $('confirmRestoreBtn').addEventListener('click',doRestoreWallet);
+  $('cancelRestoreBtn').addEventListener('click',hideRestoreCard);
+  $('showSeedBtn').addEventListener('click',doShowSeed);
+
+  init();
+});
+</script>
+</body>
+</html>

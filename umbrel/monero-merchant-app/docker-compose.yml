@@ -1,0 +1,102 @@
+services:
+  app_proxy:
+    container_name: monero_merchant_app_proxy
+    environment:
+      APP_HOST: monero_merchant_backend
+      APP_PORT: 8080
+      PROXY_AUTH_ADD: "false"
+    image: getumbrel/app-proxy:1.7.0
+    restart: on-failure
+    volumes:
+      - "${APP_DATA_DIR}:/data"
+    networks:
+      - default
+      - umbrel_main_network
+
+  backend:
+    container_name: monero_merchant_backend
+    env_file:
+      - ${APP_DATA_DIR}/.env
+    environment:
+      DB_HOST: db
+      DB_NAME: moneromerchant
+      DB_USER: moneromerchant
+      DB_PORT: "5432"
+      PORT: "8080"
+      SECRETS_FILE: ${APP_DATA_DIR}/.secrets
+      ADMIN_NAME: admin
+    image: sirjamzalot/monero-merchant-backend:v2.1.0-umbrel37
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      wallet-rpc:
+        condition: service_started
+      moneropay:
+        condition: service_started
+    networks:
+      - default
+      - umbrel_main_network
+
+  db:
+    container_name: monero_merchant_db
+    environment:
+      POSTGRES_DB: moneromerchant
+      POSTGRES_USER: moneromerchant
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    image: postgres:16-alpine
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moneromerchant -d moneromerchant"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - default
+      - umbrel_main_network
+
+  wallet-rpc:
+    container_name: monero_merchant_wallet_rpc
+    env_file:
+      - ${APP_DATA_DIR}/.env
+    image: sethsimmons/simple-monero-wallet-rpc:latest
+    user: "1000:1000"
+    restart: on-failure
+    volumes:
+      - ${APP_DATA_DIR}/wallet:/wallet
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "exec monero-wallet-rpc --wallet-dir=/wallet --daemon-address=$${MONERO_DAEMON_HOST}:$${MONERO_DAEMON_PORT} $${MONERO_WALLET_RPC_DAEMON_LOGIN} --rpc-bind-port=18082 --rpc-bind-ip=0.0.0.0 --confirm-external-bind --disable-rpc-login --trusted-daemon --log-level=1"
+    networks:
+      - default
+      - umbrel_main_network
+
+  moneropay:
+    container_name: monero_merchant_moneropay
+    image: registry.gitlab.com/moneropay/moneropay:v2
+    restart: on-failure
+    environment:
+      RPC_ADDRESS: http://wallet-rpc:18082/json_rpc
+      SQLITE: file:/data/moneropay.db
+      ZERO_CONF: "true"
+    volumes:
+      - ${APP_DATA_DIR}/moneropay:/data
+    depends_on:
+      wallet-rpc:
+        condition: service_started
+    networks:
+      - default
+      - umbrel_main_network
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.99.20.0/24
+  umbrel_main_network:
+    external: true

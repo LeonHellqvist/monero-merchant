@@ -1,0 +1,96 @@
+manifestVersion: 1
+id: monero-merchant-app
+category: finance
+name: Monero Merchant
+version: "2.1.0-umbrel1"
+tagline: Accept Monero payments with a self-hosted POS backend
+description: >-
+  Monero Merchant is a free, open-source point-of-sale backend for accepting
+  Monero (XMR) payments. Pair it with the Android POS client to process fast,
+  private, and seamless payments with no third-party reliance.
+
+
+  Features include vendor management, transaction tracking, receipt printing
+  support, zero-confirmation payments, and an integrated admin dashboard for
+  managing invites, transfers, and credentials.
+
+
+  This Umbrel app connects to the official Umbrel Monero node for blockchain
+  data and includes its own wallet-rpc service. Configure the MoneroPay
+  connection during setup.
+developer: Monero Merchant
+website: https://moneromerchant.com
+repo: https://github.com/Monero-Merchant/monero-merchant
+support: https://matrix.to/#/%23monero-merchant:matrix.org
+dependencies:
+  - monero
+port: 8080
+icon: https://raw.githubusercontent.com/Monero-Merchant/monero-merchant/main/umbrel/monero-merchant-app/icon.png
+gallery:
+  - 1.jpg
+  - 2.jpg
+  - 3.jpg
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+releaseNotes: >-
+  Initial Umbrel release. Monero Merchant runs as a self-hosted Monero
+  point-of-sale backend on your Umbrel, connecting to the official Umbrel Monero
+  node and running its own wallet-rpc and MoneroPay services. Includes an admin
+  dashboard (wallet setup and seed backup, balance, vendor management, invites,
+  transactions, and payouts), a first-run "set your password or skip" screen, and
+  a vendor self-service portal at /store where a vendor signs up with an invite,
+  sets their Monero payout address, and creates POS devices to use with the
+  Android client. Multi-arch image (amd64 and arm64).
+torOnly: false
+submitter: brainchainz
+submission: https://github.com/Monero-Merchant/monero-merchant/pulls
+
+userConfig:
+  - name: ADMIN_PASSWORD
+    label: Admin Password (Optional)
+    description: Set an initial password, or leave blank and set it later in Settings
+    type: password
+    required: false
+
+  - name: MONEROPAY_BASE_URL
+    label: MoneroPay Base URL
+    description: URL to your MoneroPay instance
+    type: text
+    default: http://moneropay:5000
+    required: true
+
+  - name: MONEROPAY_CALLBACK_URL
+    label: MoneroPay Callback URL
+    description: URL MoneroPay should POST callbacks to
+    type: text
+    default: http://monero_merchant_backend:8080/callback/
+    required: true
+
+  - name: MONERO_DAEMON_RPC_HOSTNAME
+    label: Monero Daemon RPC Hostname (override)
+    description: Leave blank to auto-detect Umbrel Monero node
+    type: text
+    default: ""
+    required: false
+
+  - name: MONERO_DAEMON_RPC_PORT
+    label: Monero Daemon RPC Port (override)
+    description: Leave blank to auto-detect
+    type: number
+    default: ""
+    required: false
+
+  - name: MONERO_DAEMON_RPC_USERNAME
+    label: Monero Daemon RPC Username (override)
+    description: Leave blank to auto-detect
+    type: text
+    default: ""
+    required: false
+
+  - name: MONERO_DAEMON_RPC_PASSWORD
+    label: Monero Daemon RPC Password (override)
+    description: Leave blank to auto-detect
+    type: password
+    default: ""
+    required: false

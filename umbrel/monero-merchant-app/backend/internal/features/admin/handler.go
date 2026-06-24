@@ -1,0 +1,485 @@
+package admin
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+	"context"
+	"io"
+	"strings"
+
+	vendorfeature "github.com/monero-merchant/monero-merchant/backend/internal/features/vendor"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
+)
+
+type AdminHandler struct {
+	service *AdminService
+	vendorService *vendorfeature.VendorService
+}
+
+func NewAdminHandler(service *AdminService, vendorService *vendorfeature.VendorService) *AdminHandler {
+	return &AdminHandler{service: service, vendorService: vendorService}
+}
+
+type createInviteRequest struct {
+	ValidUntil int64   `json:"valid_until"`
+	ForcedName *string `json:"forced_name"`
+}
+
+type createInviteResponse struct {
+	InviteCode string `json:"invite_code"`
+}
+
+type walletBalanceResponse struct {
+	Total    uint64 `json:"total"`
+	Unlocked uint64 `json:"unlocked"`
+	Locked   uint64 `json:"locked"`
+}
+
+type transferBalanceRequest struct {
+	VendorID uint   `json:"vendor_id"`
+}
+
+type deleteVendorRequest struct {
+	VendorID uint `json:"vendor_id"`
+}
+
+type deleteVendorResponse struct {
+	Success bool `json:"success"`
+	ID      uint `json:"id"`
+}
+
+func (h *AdminHandler) CreateInvite(w http.ResponseWriter, r *http.Request) {
+	// check jwt if admin
+
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+  defer cancel()
+  r = r.WithContext(ctx)
+  r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB cap
+
+	var req createInviteRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	inviteCode, err := h.service.CreateInvite(ctx, time.Unix(req.ValidUntil, 0), req.ForcedName)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := createInviteResponse{
+		InviteCode: inviteCode,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+	io.Copy(io.Discard, r.Body)
+}
+
+func (h *AdminHandler) ListVendors(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	vendors, err := h.service.ListVendorsWithBalances(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp := struct {
+		Vendors []VendorSummary `json:"vendors"`
+	}{Vendors: vendors}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (h *AdminHandler) GetWalletBalance(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if h.vendorService == nil {
+		http.Error(w, "Vendor service not configured", http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	balance, httpErr := h.vendorService.GetBalance(ctx, 0)
+	if httpErr != nil {
+		http.Error(w, httpErr.Message, httpErr.Code)
+		return
+	}
+	if balance == nil {
+		http.Error(w, "Failed to retrieve wallet balance", http.StatusInternalServerError)
+		return
+	}
+
+	resp := walletBalanceResponse{
+		Total:    balance.Total,
+		Unlocked: balance.Unlocked,
+		Locked:   balance.Locked,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (h *AdminHandler) TransferBalance(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if h.vendorService == nil {
+		http.Error(w, "Vendor service not configured", http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req transferBalanceRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.VendorID == 0 {
+		http.Error(w, "vendor_id is required", http.StatusBadRequest)
+		return
+	}
+
+	httpErr := h.vendorService.CreateTransfer(ctx, req.VendorID)
+	if httpErr != nil {
+		http.Error(w, httpErr.Message, httpErr.Code)
+		return
+	}
+
+	resp := "Transfer initiated successfully"
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+	io.Copy(io.Discard, r.Body)
+}
+
+func (h *AdminHandler) DeleteVendor(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req deleteVendorRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.VendorID == 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": "vendor_id is required",
+		})
+		io.Copy(io.Discard, r.Body)
+		return
+	}
+
+	httpErr := h.service.DeleteVendor(ctx, req.VendorID)
+	if httpErr != nil {
+		message := httpErr.Message
+		if httpErr.Code == http.StatusNotFound {
+			message = "No vendor with ID"
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpErr.Code)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"success": false,
+			"message": message,
+		})
+		io.Copy(io.Discard, r.Body)
+		return
+	}
+
+	resp := deleteVendorResponse{
+		Success: true,
+		ID:      req.VendorID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+	io.Copy(io.Discard, r.Body)
+}
+
+func (h *AdminHandler) ListInvites(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	invites, err := h.service.ListInvites(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"invites": invites})
+}
+
+func (h *AdminHandler) ListTransactions(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	transactions, err := h.service.ListAllTransactions(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"transactions": transactions})
+}
+
+func (h *AdminHandler) ListPosDevices(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	devices, err := h.service.ListAllPosDevices(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"devices": devices})
+}
+
+// GetWalletInfo returns the wallet address and metadata.
+func (h *AdminHandler) GetWalletInfo(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if h.vendorService == nil {
+		http.Error(w, "Vendor service not configured", http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	info, httpErr := h.vendorService.GetWalletInfo(ctx)
+	if httpErr != nil {
+		http.Error(w, httpErr.Message, httpErr.Code)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(info)
+}
+
+// GetConnectionInfo returns endpoint URLs and API tokens for POS client setup.
+func (h *AdminHandler) GetConnectionInfo(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	// Extract current access token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	var currentToken string
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		currentToken = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	resp := map[string]interface{}{
+		"backend_url":  "/", // relative; POS clients should use same origin
+		"api_version":  "v2.1.0",
+		"admin_token":  currentToken,
+		"endpoints": map[string]string{
+			"login":        "/auth/login-admin",
+			"vendors":      "/admin/vendors",
+			"transactions": "/admin/transactions",
+			"invites":      "/admin/invites",
+			"balance":      "/admin/balance",
+			"transfer":     "/admin/transfer-balance",
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+// SetupWallet creates a new wallet file via wallet-rpc.
+func (h *AdminHandler) SetupWallet(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Unauthorized"})
+		return
+	}
+	if h.vendorService == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Vendor service not configured"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	if httpErr := h.vendorService.SetupWallet(ctx); httpErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpErr.Code)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": httpErr.Message})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Wallet created successfully"})
+}
+
+// RestoreWallet restores a wallet from mnemonic seed.
+func (h *AdminHandler) RestoreWallet(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Unauthorized"})
+		return
+	}
+	if h.vendorService == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Vendor service not configured"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 90*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req struct {
+		Seed          string `json:"seed"`
+		RestoreHeight uint64 `json:"restore_height"`
+	}
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Invalid request body"})
+		return
+	}
+
+	if httpErr := h.vendorService.RestoreWallet(ctx, req.Seed, req.RestoreHeight); httpErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpErr.Code)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": httpErr.Message})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "message": "Wallet restored successfully"})
+}
+
+// GetWalletSeed returns the mnemonic seed of the currently open wallet.
+func (h *AdminHandler) GetWalletSeed(w http.ResponseWriter, r *http.Request) {
+	role, ok := utils.GetClaimFromContext(r.Context(), models.ClaimsRoleKey)
+	if !ok || role != "admin" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Unauthorized"})
+		return
+	}
+	if h.vendorService == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": "Vendor service not configured"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
+
+	seed, httpErr := h.vendorService.GetWalletSeed(ctx)
+	if httpErr != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpErr.Code)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"error": httpErr.Message})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"seed": seed})
+}
