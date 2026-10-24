@@ -8,7 +8,11 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/server"
 )
 
+var version = "dev"
+
 func main() {
+	log.Printf("Monero Merchant backend %s", version)
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
@@ -26,6 +30,6 @@ func main() {
 	defer sqlDB.Close()
 
 	srv := server.NewServer(cfg, database)
-	log.Printf("Starting server on 0.0.0.0:" + cfg.Port)
+	log.Printf("Starting server on 0.0.0.0:%s", cfg.Port)
 	log.Fatal(srv.Start())
 }

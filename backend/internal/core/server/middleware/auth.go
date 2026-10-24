@@ -2,11 +2,11 @@ package middleware
 
 import (
 	"context"
-	"reflect"
 	"errors"
 	"net/http"
-	"time"
+	"reflect"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
