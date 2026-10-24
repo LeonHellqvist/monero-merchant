@@ -3,8 +3,8 @@ package misc
 import (
 	"context"
 
-	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
+	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
 )
 
 type MiscService struct {

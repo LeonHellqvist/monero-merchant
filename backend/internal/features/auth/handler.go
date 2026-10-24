@@ -127,7 +127,7 @@ func (h *AuthHandler) LoginPos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Rate limit based on vendor ID and POS name
-	key := fmt.Sprintf("pos:%s:%s", req.VendorID, req.Name)
+	key := fmt.Sprintf("pos:%d:%s", req.VendorID, req.Name)
 	if h.limiter.RespondOnLimit(w, r, key) {
 		return
 	}

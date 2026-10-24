@@ -26,6 +26,6 @@ func main() {
 	defer sqlDB.Close()
 
 	srv := server.NewServer(cfg, database)
-	log.Printf("Starting server on 0.0.0.0:" + cfg.Port)
+	log.Printf("Starting server on 0.0.0.0:%s", cfg.Port)
 	log.Fatal(srv.Start())
 }
