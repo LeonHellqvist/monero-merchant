@@ -8,7 +8,11 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/server"
 )
 
+var version = "dev"
+
 func main() {
+	log.Printf("Monero Merchant backend %s", version)
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal("Failed to load config:", err)
