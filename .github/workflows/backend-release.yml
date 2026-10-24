@@ -8,7 +8,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: backend-release-${{ github.ref }}
+  group: backend-release
   cancel-in-progress: false
 
 jobs:
