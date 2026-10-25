@@ -37,12 +37,6 @@ type createInviteResponse struct {
 	InviteCode string `json:"invite_code"`
 }
 
-type walletBalanceResponse struct {
-	Total    uint64 `json:"total"`
-	Unlocked uint64 `json:"unlocked"`
-	Locked   uint64 `json:"locked"`
-}
-
 type transferBalanceRequest struct {
 	VendorID uint `json:"vendor_id"`
 }
@@ -126,32 +120,17 @@ func (h *AdminHandler) GetWalletBalance(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if h.vendorService == nil {
-		http.Error(w, "Vendor service not configured", http.StatusInternalServerError)
-		return
-	}
-
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	balance, httpErr := h.vendorService.GetBalance(ctx, 0)
+	balance, httpErr := h.service.GetWalletBalance(ctx)
 	if httpErr != nil {
 		http.Error(w, httpErr.Message, httpErr.Code)
 		return
 	}
-	if balance == nil {
-		http.Error(w, "Failed to retrieve wallet balance", http.StatusInternalServerError)
-		return
-	}
-
-	resp := walletBalanceResponse{
-		Total:    balance.Total,
-		Unlocked: balance.Unlocked,
-		Locked:   balance.Locked,
-	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(balance)
 }
 
 func (h *AdminHandler) TransferBalance(w http.ResponseWriter, r *http.Request) {

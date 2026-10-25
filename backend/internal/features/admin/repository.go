@@ -10,6 +10,7 @@ import (
 type AdminRepository interface {
 	CreateInvite(ctx context.Context, invite *models.Invite) (*models.Invite, error)
 	ListVendorsWithBalances(ctx context.Context) ([]VendorSummary, error)
+	GetVendorBalancesTotal(ctx context.Context) (int64, error)
 	ListInvites(ctx context.Context) ([]models.Invite, error)
 	ListTransactions(ctx context.Context, limit int, offset int) ([]*models.Transaction, int64, error)
 	ListPosDevices(ctx context.Context) ([]*models.Pos, error)
@@ -81,4 +82,13 @@ func (r *adminRepository) ListPosDevices(ctx context.Context) ([]*models.Pos, er
 	var devices []*models.Pos
 	err := r.db.WithContext(ctx).Preload("Vendor").Order("created_at DESC").Find(&devices).Error
 	return devices, err
+}
+
+func (r *adminRepository) GetVendorBalancesTotal(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.Transaction{}).
+		Where("confirmed = ? AND transferred = ?", true, false).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&total).Error
+	return total, err
 }

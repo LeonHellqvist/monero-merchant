@@ -19,6 +19,14 @@ type WalletInfo struct {
 	WalletName string `json:"wallet_name"`
 }
 
+type WalletBalance struct {
+	Total    uint64 `json:"total"`
+	Unlocked uint64 `json:"unlocked"`
+	Locked   uint64 `json:"locked"`
+	// Confirmed sales not yet paid out, from the database. The wallet should hold at least this much.
+	VendorBalances int64 `json:"vendor_balances"`
+}
+
 func isWalletNotOpen(err error) bool {
 	var rpcErr *rpc.Error
 	return errors.As(err, &rpcErr) && rpcErr.Code == walletRPCErrNotOpen
@@ -122,4 +130,26 @@ func (s *AdminService) GetWalletSeed(ctx context.Context) (string, *models.HTTPE
 		return "", models.NewHTTPError(http.StatusBadGateway, err.Error())
 	}
 	return resp.Key, nil
+}
+
+func (s *AdminService) GetWalletBalance(ctx context.Context) (*WalletBalance, *models.HTTPError) {
+	var resp struct {
+		Balance         uint64 `json:"balance"`
+		UnlockedBalance uint64 `json:"unlocked_balance"`
+	}
+	if err := s.rpcClient.Call(ctx, "get_balance", map[string]any{"account_index": 0}, &resp); err != nil {
+		return nil, models.NewHTTPError(http.StatusBadGateway, err.Error())
+	}
+
+	vendorBalances, err := s.repo.GetVendorBalancesTotal(ctx)
+	if err != nil {
+		return nil, models.NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+
+	return &WalletBalance{
+		Total:          resp.Balance,
+		Unlocked:       resp.UnlockedBalance,
+		Locked:         resp.Balance - resp.UnlockedBalance,
+		VendorBalances: vendorBalances,
+	}, nil
 }
