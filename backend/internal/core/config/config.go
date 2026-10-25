@@ -50,6 +50,9 @@ type Config struct {
 	WalletPassword          string
 	WalletAutoRefreshPeriod uint32
 
+	// Exchange rates
+	FrankfurterBaseURL string
+
 	// Rate limiting
 	TrustedProxyHeader string
 }
@@ -100,6 +103,8 @@ func LoadConfig() (*Config, error) {
 		WalletPassword: os.Getenv("WALLET_PASSWORD"),
 
 		TrustedProxyHeader: os.Getenv("TRUSTED_PROXY_HEADER"),
+
+		FrankfurterBaseURL: getEnvDefault("FRANKFURTER_BASE_URL", "https://api.frankfurter.dev"),
 	}
 
 	if period := os.Getenv("WALLET_AUTO_REFRESH_PERIOD"); period != "" {
@@ -130,4 +135,11 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return config, nil
+}
+
+func getEnvDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
 }
