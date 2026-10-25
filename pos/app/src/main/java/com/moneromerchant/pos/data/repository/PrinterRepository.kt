@@ -4,6 +4,8 @@ import android.util.Log
 import kotlinx.coroutines.flow.first
 import com.moneromerchant.pos.data.printer.PrinterServiceManager
 import com.moneromerchant.pos.ui.PaymentSuccess
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -33,9 +35,9 @@ class PrinterRepository(private val printerServiceManager: PrinterServiceManager
             printerServiceManager.printSpacer()
             printerServiceManager.printTextCenter("PURCHASE")
             printerServiceManager.printText("TXID: ${paymentSuccess.txId}")
-            printerServiceManager.printText("XMR: ${paymentSuccess.xmrAmount}")
-            printerServiceManager.printText("${paymentSuccess.primaryFiatCurrency}: ${paymentSuccess.fiatAmount}")
-            printerServiceManager.printText("Exchange rate: ${paymentSuccess.exchangeRate} ${paymentSuccess.primaryFiatCurrency} / XMR")
+            printerServiceManager.printText("XMR: ${BigDecimal.valueOf(paymentSuccess.xmrAmount).stripTrailingZeros().toPlainString()}")
+            printerServiceManager.printText("${paymentSuccess.primaryFiatCurrency}: ${BigDecimal.valueOf(paymentSuccess.fiatAmount).setScale(2, RoundingMode.HALF_UP).toPlainString()}")
+            printerServiceManager.printText("Exchange rate: ${BigDecimal.valueOf(paymentSuccess.exchangeRate).setScale(2, RoundingMode.HALF_UP).toPlainString()} ${paymentSuccess.primaryFiatCurrency} / XMR")
             printerServiceManager.printSpacer()
             printerServiceManager.printTextCenter(dataStoreRepository.getReceiptFooter().first())
             printerServiceManager.printEnd()
