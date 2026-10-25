@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/icholy/digest"
 )
 
 type Client struct {
@@ -18,12 +19,19 @@ type Client struct {
 	client   *http.Client
 }
 
+// NewClient creates a JSON-RPC client for monerod or monero-wallet-rpc.
+// Both use HTTP digest auth when started with --rpc-login.
 func NewClient(endpoint, username, password string) *Client {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	if username != "" || password != "" {
+		httpClient.Transport = &digest.Transport{Username: username, Password: password}
+	}
+
 	return &Client{
 		Endpoint: endpoint,
 		Username: username,
 		Password: password,
-		client:   &http.Client{Timeout: 30 * time.Second},
+		client:   httpClient,
 	}
 }
 
@@ -53,47 +61,52 @@ func (c *Client) Call(ctx context.Context, method string, params interface{}, re
 		Params:  params,
 	})
 	if err != nil {
-		log.Printf("[RPC] Error marshaling request: %v", err)
-		return err
+		return fmt.Errorf("failed to marshal RPC request: %w", err)
 	}
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint, bytes.NewBuffer(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint, bytes.NewReader(reqBody))
 	if err != nil {
-		log.Printf("[RPC] Error creating HTTP request: %v", err)
-		return err
+		return fmt.Errorf("failed to create RPC request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	if c.Username != "" || c.Password != "" {
-		req.SetBasicAuth(c.Username, c.Password)
-	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		log.Printf("[RPC] HTTP request error: %v", err)
-		return err
+		return fmt.Errorf("RPC %s request failed: %w", method, err)
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
 	}()
 
-	var rpcResp rpcResponse
-	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
-		log.Printf("[RPC] Error decoding response: %v", err)
-		return err
-	}
+	return decodeResponse(resp, result)
+}
 
+func decodeResponse(resp *http.Response, result interface{}) error {
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read RPC response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("RPC HTTP %d: %s", resp.StatusCode, body)
+	}
+	return parseRPCBody(body, result)
+}
+
+func parseRPCBody(body []byte, result interface{}) error {
+	var rpcResp rpcResponse
+	if err := json.Unmarshal(body, &rpcResp); err != nil {
+		return fmt.Errorf("failed to decode RPC response: %w (body: %s)", err, body)
+	}
 	if rpcResp.Error != nil {
-		log.Printf("[RPC] RPC error: %d %s", rpcResp.Error.Code, rpcResp.Error.Message)
 		return fmt.Errorf("RPC error %d: %s", rpcResp.Error.Code, rpcResp.Error.Message)
 	}
 	if result != nil && rpcResp.Result != nil {
 		if err := json.Unmarshal(*rpcResp.Result, result); err != nil {
-			log.Printf("[RPC] Error unmarshaling result: %v", err)
-			return err
+			return fmt.Errorf("failed to unmarshal RPC result: %w", err)
 		}
 	}
 	return nil

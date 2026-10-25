@@ -5,6 +5,7 @@ go 1.26.10
 require (
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/httprate v0.16.0
+	github.com/icholy/digest v1.2.0
 	github.com/joho/godotenv v1.5.1
 )
 
