@@ -92,7 +92,8 @@ jobs:
           MONERO_VERSION: ${{ needs.checks.outputs.monero-version }}
         run: |
           for platform in linux/amd64 linux/arm64; do
-            output="$(docker run --rm --platform "$platform" "$REF" --version)"
+            output="$(docker run --rm --pull always --platform "$platform" "$REF" --version)"
+            docker image rm "$REF" > /dev/null
             echo "${platform}: ${output}"
             if [[ "$output" != *"v${MONERO_VERSION}-release"* ]]; then
               echo "Expected monero-wallet-rpc v${MONERO_VERSION} on ${platform}" >&2
