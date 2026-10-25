@@ -102,19 +102,19 @@ docker compose up -d --build backend
 
 Use tools such as Yaak, Postman or curl to interact with the API.
 
-1. **Login as admin**: Use the `/auth/login-admin` endpoint with admin credentials to obtain a JWT token.
-2. **Create an invite**: Use the `/admin/invite` endpoint to create a new invite code.
-3. **Register a vendor**: Use the `/vendor/create` endpoint with the invite code to create a new vendor account.
-4. **Login vendor**: Use the `/auth/login-vendor` endpoint to obtain a JWT token.
-5. **Create POS**: Use the `/vendor/create-pos` endpoint to create a new POS account under the vendor.
+1. **Login as admin**: Use the `/api/auth/login-admin` endpoint with admin credentials to obtain a JWT token.
+2. **Create an invite**: Use the `/api/admin/invite` endpoint to create a new invite code.
+3. **Register a vendor**: Use the `/api/vendor/create` endpoint with the invite code to create a new vendor account.
+4. **Login vendor**: Use the `/api/auth/login-vendor` endpoint to obtain a JWT token.
+5. **Create POS**: Use the `/api/vendor/create-pos` endpoint to create a new POS account under the vendor.
 
 Now the POS account can be used with the Monero Merchant app.
 
-To transfer the balance from the vendor account to the Monero wallet, use the `/vendor/transfer-balance` endpoint. It will not be instant and will group transfers to be able to payout more often. The background worker checks queued transfers every 30 seconds.
+To transfer the balance from the vendor account to the Monero wallet, use the `/api/vendor/transfer-balance` endpoint. It will not be instant and will group transfers to be able to payout more often. The background worker checks queued transfers every 30 seconds.
 
 ### Example: Login as admin
 
-**POST** `/auth/login-admin`
+**POST** `/api/auth/login-admin`
 
 ```json
 {
@@ -125,7 +125,7 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ### Example: Create an invite
 
-**POST** `/admin/invite`
+**POST** `/api/admin/invite`
 
 ```json
 {
@@ -136,7 +136,7 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ### Example: Register a vendor
 
-**POST** `/vendor/create`
+**POST** `/api/vendor/create`
 
 ```json
 {
@@ -149,7 +149,7 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ### Example: Login vendor
 
-**POST** `/auth/login-vendor`
+**POST** `/api/auth/login-vendor`
 
 ```json
 {
@@ -160,7 +160,7 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ### Example: Create POS
 
-**POST** `/vendor/create-pos`
+**POST** `/api/vendor/create-pos`
 
 ```json
 {
@@ -171,44 +171,43 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ### Example: Vendor initiate transfer
 
-**POST** `/vendor/transfer-balance`
+**POST** `/api/vendor/transfer-balance`
 
 No request body is required. The authenticated vendor's stored payout subaddress is used.
 
 ## API Overview
 
-Paths are relative to your backend origin. Admin/vendor/POS authentication means `Authorization: Bearer <access_token>` with the indicated role. Send JSON bodies with `Content-Type: application/json`; values in angle brackets are placeholders. XMR amounts use atomic units (1 XMR = 1,000,000,000,000 units).
+All endpoints are under `/api` on your backend origin. Admin/vendor/POS authentication means `Authorization: Bearer <access_token>` with the indicated role. Send JSON bodies with `Content-Type: application/json`; values in angle brackets are placeholders. XMR amounts use atomic units (1 XMR = 1,000,000,000,000 units).
 
 | Method | Endpoint | Authentication | Verified request body | Behavior / verification notes |
 | --- | --- | --- | --- | --- |
-| POST | `/auth/login-admin` | None | `{"name":"<admin-name>","password":"<admin-password>"}` | Returns access and refresh tokens; credentials come from configuration. |
-| POST | `/auth/login-vendor` | None | `{"name":"<vendor-name>","password":"<vendor-password>"}` | Returns access and refresh tokens and vendor ID. |
-| POST | `/auth/update-password` | Vendor or POS | `{"current_password":"<current-password>","new_password":"<new-password>"}` | Changes own password and returns replacement tokens. Vendor POS reset also accepts `pos_id`. |
-| POST | `/admin/invite` | Admin | `{"valid_until":1822307285,"forced_name":null}` | Creates an invite; expiry is Unix seconds, forced name is nullable. |
-| GET | `/admin/vendors` | Admin | None | Lists vendors with calculated balances.  |
-| GET | `/admin/balance` | Admin | None | Reads shared wallet account 0: total, unlocked and locked balances.  |
-| POST | `/admin/transfer-balance` | Admin | `{"vendor_id":1}` | Queues the selected vendor's payout to its stored subaddress. |
-| POST | `/admin/delete` | Admin | `{"vendor_id":1}` | Deletes the selected vendor through the vendor service. |
-| POST | `/vendor/create` | None | `{"name":"<vendor-name>","password":"<vendor-password>","monero_subaddress":"<payout-subaddress>","invite_code":"<invite-code>"}` | Invite-based registration; optional `email` is also supported. |
-| GET | `/vendor/pos-list` | Vendor | None | Lists the authenticated vendor's POS units. |
-| POST | `/vendor/create-pos` | Vendor | `{"name":"<pos-name>","password":"<pos-password>"}` | Creates a POS account belonging to the authenticated vendor. |
-| GET | `/vendor/balance` | Vendor | None | Sums confirmed, untransferred sale amounts; this is an account balance, not a direct wallet RPC balance. |
-| GET | `/vendor/export` | Vendor | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
-| GET | `/vendor/transactions` | Vendor | None | Returns confirmed and pending transaction summaries. |
-| POST | `/vendor/transfer-balance` | Vendor | None | Queues own payout using the stored subaddress.  |
-| POST | `/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
-| GET | `/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
-| POST | `/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
-| POST | `/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
-| POST | `/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
-| GET | `/pos/transaction/{id}` | POS | None | Reads a sale belonging to the authenticated vendor and POS. |
-| GET | `/pos/transactions` | POS | None | Lists own confirmed payment summaries and pending sales. |
-| GET | `/pos/balance` | POS | None | Sums own confirmed, untransferred sale amounts. |
-| GET | `/pos/export` | POS | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
-| GET (WebSocket upgrade) | `/pos/ws/transaction?transaction_id=<id>` | POS | None | Subscribes to updates for an owned sale. Router uses `HandleFunc`; the handler requires a valid WebSocket handshake. |
-| POST | `/callback/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | MoneroPay callback body; JWT signed with `JWT_MONEROPAY_SECRET`. |
-| POST | `/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | Alias for the same MoneroPay callback handler. |
-| POST | `/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Resolves one recent matching sale by amount. |
+| POST | `/api/auth/login-admin` | None | `{"name":"<admin-name>","password":"<admin-password>"}` | Returns access and refresh tokens; credentials come from configuration. |
+| POST | `/api/auth/login-vendor` | None | `{"name":"<vendor-name>","password":"<vendor-password>"}` | Returns access and refresh tokens and vendor ID. |
+| POST | `/api/auth/update-password` | Vendor or POS | `{"current_password":"<current-password>","new_password":"<new-password>"}` | Changes own password and returns replacement tokens. Vendor POS reset also accepts `pos_id`. |
+| POST | `/api/admin/invite` | Admin | `{"valid_until":1822307285,"forced_name":null}` | Creates an invite; expiry is Unix seconds, forced name is nullable. |
+| GET | `/api/admin/vendors` | Admin | None | Lists vendors with calculated balances.  |
+| GET | `/api/admin/balance` | Admin | None | Reads shared wallet account 0: total, unlocked and locked balances.  |
+| POST | `/api/admin/transfer-balance` | Admin | `{"vendor_id":1}` | Queues the selected vendor's payout to its stored subaddress. |
+| POST | `/api/admin/delete` | Admin | `{"vendor_id":1}` | Deletes the selected vendor through the vendor service. |
+| POST | `/api/vendor/create` | None | `{"name":"<vendor-name>","password":"<vendor-password>","monero_subaddress":"<payout-subaddress>","invite_code":"<invite-code>"}` | Invite-based registration; optional `email` is also supported. |
+| GET | `/api/vendor/pos-list` | Vendor | None | Lists the authenticated vendor's POS units. |
+| POST | `/api/vendor/create-pos` | Vendor | `{"name":"<pos-name>","password":"<pos-password>"}` | Creates a POS account belonging to the authenticated vendor. |
+| GET | `/api/vendor/balance` | Vendor | None | Sums confirmed, untransferred sale amounts; this is an account balance, not a direct wallet RPC balance. |
+| GET | `/api/vendor/export` | Vendor | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
+| GET | `/api/vendor/transactions` | Vendor | None | Returns confirmed and pending transaction summaries. |
+| POST | `/api/vendor/transfer-balance` | Vendor | None | Queues own payout using the stored subaddress.  |
+| POST | `/api/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
+| GET | `/api/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
+| POST | `/api/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
+| POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
+| POST | `/api/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
+| GET | `/api/pos/transaction/{id}` | POS | None | Reads a sale belonging to the authenticated vendor and POS. |
+| GET | `/api/pos/transactions` | POS | None | Lists own confirmed payment summaries and pending sales. |
+| GET | `/api/pos/balance` | POS | None | Sums own confirmed, untransferred sale amounts. |
+| GET | `/api/pos/export` | POS | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
+| GET (WebSocket upgrade) | `/api/pos/ws/transaction?transaction_id=<id>` | POS | None | Subscribes to updates for an owned sale. Router uses `HandleFunc`; the handler requires a valid WebSocket handshake. |
+| POST | `/api/callback/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | MoneroPay callback body; JWT signed with `JWT_MONEROPAY_SECRET`. |
+| POST | `/api/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Resolves one recent matching sale by amount. |
 
 Replace `$ADMIN_JWT` / `$VENDOR_JWT` token placeholders with tokens returned by login. The invite request also contains a saved JWT; replace it with a fresh admin token.
 
