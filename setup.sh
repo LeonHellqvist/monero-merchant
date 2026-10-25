@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(pwd)"
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd -- "$ROOT_DIR"
 MONEROPAY_REPO="https://gitlab.com/moneropay/moneropay.git"
-MONERO_RPC_REPO="https://github.com/sethforprivacy/simple-monero-wallet-rpc-docker.git"
 
 gen_secret() {
   openssl rand -hex 32
@@ -13,12 +13,26 @@ gen_password() {
   openssl rand -hex 16
 }
 
+gen_user() {
+  openssl rand -hex 6
+}
+
 fill_if_empty() {
   local key="$1"
   local value="$2"
 
   if grep -q "^${key}=$" .env; then
-    sed -i "s|^${key}=$|${key}=${value}|" .env
+    local temp_file
+    temp_file="$(mktemp "$ROOT_DIR/.env.tmp.XXXXXX")"
+    if awk -v key="$key" -v value="$value" '
+      $0 == key "=" { print key "=" value; next }
+      { print }
+    ' .env > "$temp_file" && cat "$temp_file" > .env; then
+      rm -f "$temp_file"
+    else
+      rm -f "$temp_file"
+      return 1
+    fi
   elif ! grep -q "^${key}=" .env; then
     echo "${key}=${value}" >> .env
   fi
@@ -46,25 +60,21 @@ if [ ! -d "$ROOT_DIR/moneropay" ]; then
   git clone "$MONEROPAY_REPO"
 fi
 
-if [ ! -d "$ROOT_DIR/simple-monero-wallet-rpc-docker" ]; then
-  git clone "$MONERO_RPC_REPO"
-fi
-
 # ------------------------
 # Backend database
 # ------------------------
 fill_if_empty "DB_HOST" "backend-db"
-fill_if_empty "DB_USER" "moneromerchant"
+fill_if_empty "DB_USER" "$(gen_user)"
 fill_if_empty "DB_PASSWORD" "$(gen_password)"
-fill_if_empty "DB_NAME" "moneromerchant"
+fill_if_empty "DB_NAME" "$(gen_user)"
 fill_if_empty "DB_PORT" "5432"
 
 # ------------------------
 # MoneroPay database
 # ------------------------
-fill_if_empty "MONEROPAY_POSTGRES_USERNAME" "moneropay"
+fill_if_empty "MONEROPAY_POSTGRES_USERNAME" "$(gen_user)"
 fill_if_empty "MONEROPAY_POSTGRES_PASSWORD" "$(gen_password)"
-fill_if_empty "MONEROPAY_POSTGRES_DATABASE" "moneropay"
+fill_if_empty "MONEROPAY_POSTGRES_DATABASE" "$(gen_user)"
 
 # ------------------------
 # Backend admin
@@ -80,25 +90,24 @@ fill_if_empty "JWT_REFRESH_SECRET" "$(gen_secret)"
 fill_if_empty "JWT_MONEROPAY_SECRET" "$(gen_secret)"
 fill_if_empty "JWT_LWS_TOKEN" "$(gen_secret)"
 
+# -----------------------------------------------------------------
+# Set User ID for Docker Compose permissions
+# -----------------------------------------------------------------
+fill_if_empty "CURRENT_UID" "$(id -u)"
+
 # ------------------------
-# Wallet
+# Wallet Credentials
 # ------------------------
+fill_if_empty "WALLET_NAME" "$(gen_user)"
 fill_if_empty "WALLET_PASSWORD" "$(gen_password)"
 
 echo
 echo "Setup complete."
 echo
-echo "Review .env and make sure these are correct for your environment:"
-echo "  - MONERO_DAEMON_RPC_HOSTNAME"
-echo "  - MONERO_DAEMON_RPC_PORT"
-echo "  - MONERO_DAEMON_RPC_USERNAME / PASSWORD"
-echo "  - MONERO_DAEMON_RPC_ENDPOINT"
-echo "  - MONERO_WALLET_RPC_ENDPOINT"
-echo "  - MONERO_WALLET_RPC_USERNAME / PASSWORD"
-echo "  - MONEROPAY_CALLBACK_URL"
+echo "Review .env and make sure values are correct for your environment."
 echo
-echo "Then validate your compose file with:"
+echo "Validate your compose file with:"
 echo "  docker compose config"
 echo
-echo "Then start everything with:"
+echo "Start everything with:"
 echo "  docker compose up -d --build"
