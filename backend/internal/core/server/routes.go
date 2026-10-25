@@ -16,7 +16,10 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/features/callback"
 	"github.com/monero-merchant/monero-merchant/backend/internal/features/misc"
 	"github.com/monero-merchant/monero-merchant/backend/internal/features/pos"
+	"github.com/monero-merchant/monero-merchant/backend/internal/features/rates"
 	"github.com/monero-merchant/monero-merchant/backend/internal/features/vendor"
+	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/coinpaprika"
+	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/frankfurter"
 	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
 
 	"gorm.io/gorm"
@@ -77,6 +80,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	callbackService := callback.NewCallbackService(callbackRepository, cfg, moneroPayClient)
 	callbackService.StartConfirmationChecker(ctx, 2*time.Second) // Check for confirmations every 2 seconds
 	miscService := misc.NewMiscService(miscRepository, cfg, moneroPayClient, daemonRPC)
+	ratesService := rates.NewRatesService(coinpaprika.NewClient(), frankfurter.NewClient(cfg.FrankfurterBaseURL))
 
 	// Initialize handlers
 	adminHandler := admin.NewAdminHandler(adminService, vendorService)
@@ -85,6 +89,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	posHandler := pos.NewPosHandler(posService)
 	callbackHandler := callback.NewCallbackHandler(callbackService)
 	miscHandler := misc.NewMiscHandler(miscService)
+	ratesHandler := rates.NewRatesHandler(ratesService)
 
 	r.Route("/api", func(r chi.Router) {
 		// Public routes
@@ -137,6 +142,10 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 			r.Get("/pos/balance", posHandler.GetPosBalance)
 			r.Get("/pos/export", posHandler.ExportTransactions)
 			r.HandleFunc("/pos/ws/transaction", posHandler.TransactionWS)
+
+			// Exchange rates
+			r.Get("/rates", ratesHandler.GetRates)
+			r.Get("/rates/currencies", ratesHandler.GetCurrencies)
 		})
 	})
 
