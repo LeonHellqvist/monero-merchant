@@ -21,3 +21,7 @@
 
 # Configuration files with sensitive information
 .env
+
+# Single-module repo: workspaces are a local concern
+go.work
+go.work.sum
