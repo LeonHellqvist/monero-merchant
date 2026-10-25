@@ -54,7 +54,7 @@ class AuthRepository @Inject constructor(
                     if (protocol == URLProtocol.HTTP && !instanceUrl.startsWith("http://") && !instanceUrl.startsWith("https://")) {
                         protocol = URLProtocol.HTTP
                     }
-                    encodedPath = "/auth/login-pos"
+                    encodedPath = "/api/auth/login-pos"
                 }
                 contentType(ContentType.Application.Json)
                 setBody(AuthLoginRequest(vendorID, username, password))
