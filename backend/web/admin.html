@@ -140,7 +140,7 @@ $("btn-a-login").onclick = async ()=>{
   const outId = "out-a-auth";
   $(outId).classList.remove("err");
   try {
-    const r = await fetch("/auth/login-admin", {
+    const r = await fetch("/api/auth/login-admin", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(body)
@@ -166,7 +166,7 @@ $("btn-a-balance").onclick = async ()=>{
     return;
   }
   try {
-    const r = await fetch("/admin/balance", { headers: authHeaders() });
+    const r = await fetch("/api/admin/balance", { headers: authHeaders() });
     const data = await r.json().catch(()=> ({}));
     $(outId).textContent = `Status ${r.status}\n${pretty(data)}`;
     $(outId).classList.remove("muted");
@@ -186,7 +186,7 @@ $("btn-a-vendors").onclick = async ()=>{
     return;
   }
   try {
-    const r = await fetch("/admin/vendors", { headers: authHeaders() });
+    const r = await fetch("/api/admin/vendors", { headers: authHeaders() });
     const data = await r.json().catch(()=> ({}));
     $(outId).textContent = `Status ${r.status}\n${pretty(data)}`;
     $(outId).classList.remove("muted");
@@ -218,7 +218,7 @@ $("btn-a-invite").onclick = async ()=>{
     forced_name: $("invite-forced-name").value.trim() || null
   };
   try {
-    const r = await fetch("/admin/invite", {
+    const r = await fetch("/api/admin/invite", {
       method:"POST",
       headers: Object.assign({ "Content-Type":"application/json" }, authHeaders()),
       body: JSON.stringify(body)
@@ -249,7 +249,7 @@ $("btn-a-transfer").onclick = async ()=>{
     return;
   }
   try {
-    const r = await fetch("/admin/transfer-balance", {
+    const r = await fetch("/api/admin/transfer-balance", {
       method:"POST",
       headers: Object.assign({ "Content-Type":"application/json" }, authHeaders()),
       body: JSON.stringify({ vendor_id: vendorId })
