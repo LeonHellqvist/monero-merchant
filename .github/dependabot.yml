@@ -17,13 +17,13 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: docker
-    directory: /backend
+    directories: [/backend, /wallet-rpc]
     schedule:
       interval: monthly
     cooldown:
       default-days: 7
     groups:
-      backend-docker:
+      docker:
         patterns: ["*"]
 
   - package-ecosystem: gomod
