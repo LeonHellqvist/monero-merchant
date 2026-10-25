@@ -2,10 +2,6 @@
 **Free and Open Source Monero Point of Sale (POS)**
 
 <img width="500" src="https://github.com/user-attachments/assets/ac8414eb-4d28-4609-a4fe-4144e17d46f7" alt="Monero Merchant screenshot" />
-<br>
-<a href="https://xmrpos.twed.org/fdroid" target="_blank" rel="noopener noreferrer">
-  <img width="200" height="77" alt="fdroid" src="https://github.com/user-attachments/assets/125217c5-1bfb-4ba3-85e4-dc69ab78637b" />
-</a>
 
 ---
 
@@ -142,18 +138,6 @@ docker compose build --no-cache
 docker compose up --abort-on-container-exit
 ```
 
-### Using Prebuilt Image
-
-```bash
-git clone https://github.com/Monero-Merchant/monero-merchant
-cd monero-merchant/pos
-docker run --rm \
-  -v "$PWD":/workspace \
-  -v monero-merchant-gradle:/home/gradle-cache \
-  -v monero-merchant-android-sdk:/opt/android-sdk \
-  ghcr.io/ajs-xmr/xmrpos-android-builder:df7af4d
-```
-
 Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 ---
@@ -161,7 +145,6 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 ## Backend Setup
 
 ### Prerequisites
-- Clean Ubuntu LTS VPS
 - Docker (user added to docker group)
 - Docker Compose
 - Git
@@ -181,7 +164,9 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 `make restart` # restart containers (after .env changes)
 
-`make rebuild` # rebuild images and restart
+`make build` # build the backend image from local source
+
+`make rebuild` # build local backend source and recreate its container
 
 `make down` # stop containers
 
@@ -191,11 +176,11 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 `make logs` # stream logs
 
-### Cleanup / Uninstall (Warning: this will delete database and wallet data)
+### Cleanup / Uninstall
 
-`make clean` # remove containers, volumes, and build cache
+`make clean` # remove containers and build cache; preserve database and wallet data
 
-`make reset` # full reset: clean + delete .env and local dependencies
+`make reset` # WARNING: delete containers, database/wallet data, .env, and local dependencies
 
 ---
 
