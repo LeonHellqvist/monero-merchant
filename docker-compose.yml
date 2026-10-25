@@ -12,7 +12,10 @@ services:
   # MoneroPay wallet RPC
   # ------------------------
   monero-wallet-rpc:
-    image: moneromerchant/monero-merchant-monero-wallet-rpc:v0.18.5.3
+    image: ghcr.io/monero-merchant/monero-merchant-wallet-rpc:0.18.5.4
+    environment:
+      MONERO_DAEMON_RPC_USERNAME: ${MONERO_DAEMON_RPC_USERNAME:-}
+      MONERO_DAEMON_RPC_PASSWORD: ${MONERO_DAEMON_RPC_PASSWORD:-}
     command: >-
       --wallet-dir wallet
       --rpc-bind-ip=0.0.0.0
@@ -123,6 +126,8 @@ services:
       MONEROPAY_CALLBACK_URL: ${MONEROPAY_CALLBACK_URL}
 
       MONERO_DAEMON_RPC_ENDPOINT: ${MONERO_DAEMON_RPC_ENDPOINT}
+      MONERO_DAEMON_RPC_USERNAME: ${MONERO_DAEMON_RPC_USERNAME:-}
+      MONERO_DAEMON_RPC_PASSWORD: ${MONERO_DAEMON_RPC_PASSWORD:-}
       MONERO_WALLET_RPC_ENDPOINT: ${MONERO_WALLET_RPC_ENDPOINT}
       MONERO_WALLET_RPC_USERNAME: ${MONERO_WALLET_RPC_USERNAME}
       MONERO_WALLET_RPC_PASSWORD: ${MONERO_WALLET_RPC_PASSWORD}
