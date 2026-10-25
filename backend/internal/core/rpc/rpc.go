@@ -35,6 +35,16 @@ func NewClient(endpoint, username, password string) *Client {
 	}
 }
 
+// Error is a JSON-RPC error returned by monerod or monero-wallet-rpc.
+type Error struct {
+	Code    int
+	Message string
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("RPC error %d: %s", e.Code, e.Message)
+}
+
 type rpcRequest struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	ID      string      `json:"id"`
@@ -102,7 +112,7 @@ func parseRPCBody(body []byte, result interface{}) error {
 		return fmt.Errorf("failed to decode RPC response: %w (body: %s)", err, body)
 	}
 	if rpcResp.Error != nil {
-		return fmt.Errorf("RPC error %d: %s", rpcResp.Error.Code, rpcResp.Error.Message)
+		return &Error{Code: rpcResp.Error.Code, Message: rpcResp.Error.Message}
 	}
 	if result != nil && rpcResp.Result != nil {
 		if err := json.Unmarshal(*rpcResp.Result, result); err != nil {
