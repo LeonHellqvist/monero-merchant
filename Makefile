@@ -2,16 +2,17 @@
 
 install:
 	./setup.sh
-	docker compose up -d --build
+	docker compose up -d
 
 up:
 	docker compose up -d
 
 build:
-	docker compose build
+	docker build -t moneromerchant/monero-merchant-backend ./backend
 
 rebuild:
-	docker compose up -d --build
+	$(MAKE) build
+	docker compose up -d --force-recreate backend
 
 down:
 	docker compose down
@@ -39,20 +40,20 @@ reset:
 	sudo rm -rf simple-monero-wallet-rpc-docker
 
 clean:
-	docker compose down -v --remove-orphans
+	docker compose down --remove-orphans
 	docker builder prune -f
 
 help:
 	@echo "Available targets:"
-	@echo "  make install   - run setup.sh and build/start everything"
+	@echo "  make install   - run setup.sh and start services using prebuilt images"
 	@echo "  make up        - start existing containers"
-	@echo "  make build     - build images only"
-	@echo "  make rebuild   - rebuild images and start containers"
+	@echo "  make build     - build the backend image from local source"
+	@echo "  make rebuild   - build local backend source and recreate its container"
 	@echo "  make down      - stop containers"
 	@echo "  make logs      - follow container logs"
 	@echo "  make ps        - show container status"
 	@echo "  make restart   - restart containers"
 	@echo "  make config    - show resolved docker compose config"
 	@echo "  make pull      - pull remote images"
-	@echo "  make reset     - remove containers, volumes, .env, and cloned deps"
-	@echo "  make clean     - remove containers, volumes, and prune builder cache"
+	@echo "  make reset     - DELETE containers, database/wallet data, .env, and cloned deps"
+	@echo "  make clean     - remove containers and prune builder cache; preserve application data"
