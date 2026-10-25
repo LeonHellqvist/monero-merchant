@@ -38,4 +38,3 @@ val PRINTER_ADDRESS: Preferences.Key<String> = stringPreferencesKey("printer_add
 val PRINTER_PORT: Preferences.Key<Int> = intPreferencesKey("printer_port")
 val EXCHANGE_RATES_CACHE: Preferences.Key<String> = stringPreferencesKey("exchange_rates_cache")
 val EXCHANGE_RATES_LAST_UPDATED: Preferences.Key<Long> = longPreferencesKey("exchange_rates_last_updated")
-val PRIMARY_EXCHANGE_RATE_LAST_UPDATED: Preferences.Key<Long> = longPreferencesKey("primary_exchange_rate_last_updated")

@@ -69,8 +69,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.retrofit) // Retrofit
-    implementation(libs.converter.gson) // Gson Converter (optional)
     implementation(libs.core)
     implementation(libs.nanohttpd)
     implementation(libs.androidx.core.splashscreen)

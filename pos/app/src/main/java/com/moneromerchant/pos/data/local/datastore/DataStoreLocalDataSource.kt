@@ -24,7 +24,6 @@ import REQUIRE_PIN_CODE_ON_APP_START
 import REQUIRE_PIN_CODE_OPEN_SETTINGS
 import EXCHANGE_RATES_CACHE
 import EXCHANGE_RATES_LAST_UPDATED
-import PRIMARY_EXCHANGE_RATE_LAST_UPDATED
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import dataStore
@@ -141,19 +140,6 @@ class DataStoreLocalDataSource @Inject constructor(
     suspend fun saveExchangeRatesLastUpdated(timestamp: Long) {
         context.dataStore.edit { preferences ->
             preferences[EXCHANGE_RATES_LAST_UPDATED] = timestamp
-        }
-    }
-
-    fun getPrimaryExchangeRateLastUpdated(): Flow<Long> {
-        return context.dataStore.data
-            .map { preferences ->
-                preferences[PRIMARY_EXCHANGE_RATE_LAST_UPDATED] ?: 0L
-            }
-    }
-
-    suspend fun savePrimaryExchangeRateLastUpdated(timestamp: Long) {
-        context.dataStore.edit { preferences ->
-            preferences[PRIMARY_EXCHANGE_RATE_LAST_UPDATED] = timestamp
         }
     }
 
