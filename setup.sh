@@ -101,6 +101,12 @@ fill_if_empty "CURRENT_UID" "$(id -u)"
 fill_if_empty "WALLET_NAME" "$(gen_user)"
 fill_if_empty "WALLET_PASSWORD" "$(gen_password)"
 
+# ------------------------
+# Wallet RPC login
+# ------------------------
+fill_if_empty "MONERO_WALLET_RPC_USERNAME" "$(gen_user)"
+fill_if_empty "MONERO_WALLET_RPC_PASSWORD" "$(gen_secret)"
+
 echo
 echo "Setup complete."
 echo
