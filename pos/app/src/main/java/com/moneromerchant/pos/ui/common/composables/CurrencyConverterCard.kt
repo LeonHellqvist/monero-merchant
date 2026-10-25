@@ -64,7 +64,7 @@ fun CurrencyConverterCard(
             ) {
                 if (exchangeRate != null) {
                     Text(
-                        text = "1 XMR = $exchangeRate $currency",
+                        text = "1 XMR = ${BigDecimal.valueOf(exchangeRate).setScale(2, RoundingMode.HALF_UP).toPlainString()} $currency",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
                     )

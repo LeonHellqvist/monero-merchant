@@ -7,18 +7,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import com.moneromerchant.pos.data.local.datastore.DataStoreLocalDataSource
-import com.moneromerchant.pos.data.remote.exchangeRate.ExchangeRateRemoteDataSource
+import com.moneromerchant.pos.data.remote.backend.BackendRemoteDataSource
 import com.moneromerchant.pos.data.remote.exchangeRate.model.ExchangeRateResponse
 import com.moneromerchant.pos.shared.DataResult
 import javax.inject.Inject
-import kotlin.math.abs
 
-private const val PRIMARY_REFRESH_INTERVAL_MS = 600_000L     // 10 minutes
-private const val FULL_REFRESH_INTERVAL_MS = 3_600_000L      // 60 minutes
+// The backend caches upstream prices itself, so this only saves requests to our own backend
+private const val CACHE_DURATION_MS = 60_000L
 
 class ExchangeRateRepository @Inject constructor(
-    private val exchangeRateRemoteDataSource: ExchangeRateRemoteDataSource,
-    private val dataStoreLocalDataSource: DataStoreLocalDataSource // Or DataStoreLocalDataSource
+    private val backendRemoteDataSource: BackendRemoteDataSource,
+    private val dataStoreLocalDataSource: DataStoreLocalDataSource
 ) {
 
     private val logTag = "ExchangeRateRepository"
@@ -30,37 +29,7 @@ class ExchangeRateRepository @Inject constructor(
             return@flow
         }
 
-        val cachedRates = dataStoreLocalDataSource.getCachedExchangeRates().first()
-        val lastPrimaryRefresh = dataStoreLocalDataSource.getPrimaryExchangeRateLastUpdated().first()
-        val now = System.currentTimeMillis()
-
-        val cachedRate = cachedRates[primaryFiatCurrency]
-        val shouldRefresh = cachedRate == null || isOlderThan(now, lastPrimaryRefresh, PRIMARY_REFRESH_INTERVAL_MS)
-
-        if (!shouldRefresh) {
-            emit(DataResult.Success(mapOf(primaryFiatCurrency to cachedRate!!)))
-            return@flow
-        }
-
-        Log.i(logTag, "Refreshing primary fiat exchange rate for $primaryFiatCurrency")
-        when (val response = exchangeRateRemoteDataSource.fetchExchangeRates("XMR", listOf(primaryFiatCurrency))) {
-            is DataResult.Success -> {
-                val updatedCache = cachedRates.toMutableMap().apply {
-                    putAll(response.data)
-                }
-                dataStoreLocalDataSource.saveCachedExchangeRates(updatedCache)
-                dataStoreLocalDataSource.savePrimaryExchangeRateLastUpdated(now)
-                emit(DataResult.Success(response.data))
-            }
-            is DataResult.Failure -> {
-                Log.w(logTag, "Failed to refresh primary fiat rate: ${response.message}")
-                if (cachedRate != null) {
-                    emit(DataResult.Success(mapOf(primaryFiatCurrency to cachedRate)))
-                } else {
-                    emit(response)
-                }
-            }
-        }
+        emit(ratesFor(listOf(primaryFiatCurrency)))
     }.flowOn(Dispatchers.IO)
 
     fun fetchReferenceExchangeRates(): Flow<DataResult<ExchangeRateResponse>> = flow {
@@ -70,7 +39,7 @@ class ExchangeRateRepository @Inject constructor(
             return@flow
         }
 
-        emit(ensureRatesFor(referenceFiatCurrencies, FULL_REFRESH_INTERVAL_MS))
+        emit(ratesFor(referenceFiatCurrencies))
     }.flowOn(Dispatchers.IO)
 
     fun fetchExchangeRates(): Flow<DataResult<ExchangeRateResponse>> = flow {
@@ -80,7 +49,7 @@ class ExchangeRateRepository @Inject constructor(
             return@flow
         }
 
-        emit(ensureRatesFor(fiatCurrencies, FULL_REFRESH_INTERVAL_MS, updatePrimaryTimestamp = true))
+        emit(ratesFor(fiatCurrencies))
     }.flowOn(Dispatchers.IO)
 
     fun getPrimaryFiatCurrency(): Flow<String> {
@@ -91,47 +60,39 @@ class ExchangeRateRepository @Inject constructor(
         return dataStoreLocalDataSource.getReferenceFiatCurrencies()
     }
 
-    private suspend fun ensureRatesFor(
-        fiatCurrencies: List<String>,
-        refreshIntervalMs: Long,
-        updatePrimaryTimestamp: Boolean = false
-    ): DataResult<ExchangeRateResponse> {
-        val now = System.currentTimeMillis()
-        val cachedRates = dataStoreLocalDataSource.getCachedExchangeRates().first()
-        val lastFullRefresh = dataStoreLocalDataSource.getExchangeRatesLastUpdated().first()
-
-        val cachedSubset = cachedRates.filterKeys { it in fiatCurrencies }
-        val missingCurrencies = fiatCurrencies.filterNot { cachedSubset.containsKey(it) }
-        val shouldRefresh = missingCurrencies.isNotEmpty() || isOlderThan(now, lastFullRefresh, refreshIntervalMs)
-
-        if (!shouldRefresh) {
-            Log.i(logTag, "Serving cached exchange rates for $fiatCurrencies")
-            return DataResult.Success(cachedSubset)
+    suspend fun fetchSupportedFiatCurrencies(): DataResult<List<String>> {
+        return when (val response = backendRemoteDataSource.fetchSupportedCurrencies()) {
+            is DataResult.Success -> DataResult.Success(response.data.currencies)
+            is DataResult.Failure -> response
         }
-
-        Log.i(logTag, "Refreshing exchange rates for $fiatCurrencies")
-        val response = exchangeRateRemoteDataSource.fetchExchangeRates("XMR", fiatCurrencies)
-        if (response is DataResult.Success) {
-            val timestamp = now
-            val mergedCache = cachedRates.toMutableMap().apply {
-                putAll(response.data)
-            }
-            dataStoreLocalDataSource.saveCachedExchangeRates(mergedCache)
-            dataStoreLocalDataSource.saveExchangeRatesLastUpdated(timestamp)
-            if (updatePrimaryTimestamp) {
-                dataStoreLocalDataSource.savePrimaryExchangeRateLastUpdated(timestamp)
-            }
-            return DataResult.Success(mergedCache.filterKeys { it in fiatCurrencies })
-        } else if (cachedSubset.isNotEmpty()) {
-            Log.w(logTag, "Failed to refresh exchange rates, using cached values: ${(response as DataResult.Failure).message}")
-            return DataResult.Success(cachedSubset)
-        }
-
-        return response
     }
 
-    private fun isOlderThan(now: Long, lastUpdate: Long, interval: Long): Boolean {
-        if (lastUpdate == 0L) return true
-        return abs(now - lastUpdate) > interval
+    private suspend fun ratesFor(fiatCurrencies: List<String>): DataResult<ExchangeRateResponse> {
+        val now = System.currentTimeMillis()
+        val cachedRates = dataStoreLocalDataSource.getCachedExchangeRates().first()
+        val lastUpdated = dataStoreLocalDataSource.getExchangeRatesLastUpdated().first()
+
+        val cachedSubset = cachedRates.filterKeys { it in fiatCurrencies }
+        if (cachedSubset.size == fiatCurrencies.size && now - lastUpdated in 0 until CACHE_DURATION_MS) {
+            return DataResult.Success(cachedSubset)
+        }
+
+        // Fetch every selected currency at once so primary and reference rates share one cache
+        val selected = (dataStoreLocalDataSource.getFiatCurrencies().first() + fiatCurrencies)
+            .filter { it.isNotBlank() }
+            .distinct()
+
+        return when (val response = backendRemoteDataSource.fetchRates(selected)) {
+            is DataResult.Success -> {
+                val rates = response.data.rates.mapValues { it.value.rate }
+                dataStoreLocalDataSource.saveCachedExchangeRates(rates)
+                dataStoreLocalDataSource.saveExchangeRatesLastUpdated(now)
+                DataResult.Success(rates.filterKeys { it in fiatCurrencies })
+            }
+            is DataResult.Failure -> {
+                Log.w(logTag, "Failed to refresh exchange rates: ${response.message}")
+                if (cachedSubset.isNotEmpty()) DataResult.Success(cachedSubset) else response
+            }
+        }
     }
 }

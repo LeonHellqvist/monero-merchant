@@ -6,6 +6,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpMethod
@@ -19,9 +20,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.serialization.json.Json
 import com.moneromerchant.pos.data.remote.backend.model.BackendBalancePosResponse
+import com.moneromerchant.pos.data.remote.backend.model.BackendCurrenciesResponse
 import com.moneromerchant.pos.data.remote.backend.model.BackendCreateTransactionRequest
 import com.moneromerchant.pos.data.remote.backend.model.BackendCreateTransactionResponse
 import com.moneromerchant.pos.data.remote.backend.model.BackendHealthResponse
+import com.moneromerchant.pos.data.remote.backend.model.BackendRatesResponse
 import com.moneromerchant.pos.data.remote.backend.model.BackendTransactionHistoryResponse
 import com.moneromerchant.pos.data.remote.backend.model.BackendTransactionStatusUpdate
 import com.moneromerchant.pos.di.MainKtorClient
@@ -73,6 +76,26 @@ class BackendRemoteDataSource @Inject constructor(
     suspend fun fetchTransactionHistory(): DataResult<BackendTransactionHistoryResponse> {
         return try {
             val response = httpClient.get("pos/transactions").body<BackendTransactionHistoryResponse>()
+            DataResult.Success(response)
+        } catch (e: Exception) {
+            DataResult.Failure(message = e.message ?: "Unknown error")
+        }
+    }
+
+    suspend fun fetchRates(currencies: List<String>): DataResult<BackendRatesResponse> {
+        return try {
+            val response = httpClient.get("rates") {
+                parameter("currencies", currencies.joinToString(","))
+            }.body<BackendRatesResponse>()
+            DataResult.Success(response)
+        } catch (e: Exception) {
+            DataResult.Failure(message = e.message ?: "Unknown error")
+        }
+    }
+
+    suspend fun fetchSupportedCurrencies(): DataResult<BackendCurrenciesResponse> {
+        return try {
+            val response = httpClient.get("rates/currencies").body<BackendCurrenciesResponse>()
             DataResult.Success(response)
         } catch (e: Exception) {
             DataResult.Failure(message = e.message ?: "Unknown error")

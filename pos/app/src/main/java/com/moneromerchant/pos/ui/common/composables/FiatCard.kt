@@ -67,7 +67,7 @@ fun FiatCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "1 XMR = $exchangeRate $currency",
+                    text = "1 XMR = ${exchangeRate?.let { BigDecimal.valueOf(it).setScale(2, RoundingMode.HALF_UP).toPlainString() } ?: "-"} $currency",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.4f),
                 )
