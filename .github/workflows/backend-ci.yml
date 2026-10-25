@@ -11,6 +11,9 @@ on:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
   workflow_call:
+  # Weekly run so new Go vulnerabilities show up without a PR.
+  schedule:
+    - cron: "0 6 * * 1"
 
 permissions: {}
 
@@ -49,8 +52,17 @@ jobs:
             exit 1
           fi
 
+      - name: go mod tidy
+        run: go mod tidy -diff
+
       - name: go vet
         run: go vet ./...
+
+      - name: staticcheck
+        run: go tool staticcheck ./...
+
+      - name: govulncheck
+        run: go tool govulncheck ./...
 
       - name: go build
         run: go build ./...
