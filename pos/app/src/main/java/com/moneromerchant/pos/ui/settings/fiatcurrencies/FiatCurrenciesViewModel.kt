@@ -10,26 +10,21 @@ import androidx.navigation.NavHostController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import com.moneromerchant.pos.data.repository.DataStoreRepository
+import com.moneromerchant.pos.data.repository.ExchangeRateRepository
+import com.moneromerchant.pos.shared.DataResult
 import com.moneromerchant.pos.ui.Settings
 import javax.inject.Inject
 
 @HiltViewModel
 class FiatCurrenciesViewModel @Inject constructor(
     private val dataStoreRepository: DataStoreRepository,
+    private val exchangeRateRepository: ExchangeRateRepository,
 ) : ViewModel() {
 
     private val logTag = "FiatCurrenciesViewModel"
 
-    // TODO: Add more fiat currencies after confirming they are supported by the exchange rate API
-    val fiatOptions = listOf(
-        "ARS", "AUD", "BRL", "CAD",
-        "CLP", "CZK", "EUR", "GBP", "GEL", "HUF", "IDR", "INR", "KRW",
-        "MXN", "MYR",
-        "NGN", "NOK", "NZD", "PEN", "PHP", "PLN", "RON", "RUB",
-        "SEK", "SGD", "USD", "ZMW",
-        "JPY", "CHF", "DKK", "HKD", "TRY", "THB", "CNY", "AED", "ILS",
-        "COP", "UAH", "KES", "ZAR"
-    )
+    // Supported currencies come from the backend
+    var fiatOptions: List<String> by mutableStateOf(emptyList())
 
     private var navController: NavHostController? = null
 
@@ -46,6 +41,12 @@ class FiatCurrenciesViewModel @Inject constructor(
     var referenceFiatCurrencies: List<String> by mutableStateOf(emptyList())
 
     init {
+        viewModelScope.launch {
+            when (val result = exchangeRateRepository.fetchSupportedFiatCurrencies()) {
+                is DataResult.Success -> fiatOptions = result.data
+                is DataResult.Failure -> Log.w(logTag, "Failed to fetch supported currencies: ${result.message}")
+            }
+        }
         viewModelScope.launch {
             dataStoreRepository.getPrimaryFiatCurrency().collect { storedPrimaryFiatCurrency ->
                 Log.i(logTag, "primaryFiatCurrency: $storedPrimaryFiatCurrency")
