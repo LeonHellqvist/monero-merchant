@@ -6,13 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 // ExternalAPIClient interacts with an external API
@@ -20,19 +16,8 @@ type MoneroPayAPIClient struct {
 	BaseURL string
 }
 
-// NewExternalAPIClient initializes an external API client with a base URL loaded from environment variables
-func NewMoneroPayAPIClient() *MoneroPayAPIClient {
-	// Load environment variables from .env file
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	// Read the base URL from environment variables
-	baseURL := os.Getenv("MONEROPAY_BASE_URL")
-	if baseURL == "" {
-		log.Fatal("MONEROPAY_BASE_URL environment variable is not set")
-	}
-
+// NewMoneroPayAPIClient creates a MoneroPay API client for the given base URL
+func NewMoneroPayAPIClient(baseURL string) *MoneroPayAPIClient {
 	return &MoneroPayAPIClient{BaseURL: baseURL}
 }
 

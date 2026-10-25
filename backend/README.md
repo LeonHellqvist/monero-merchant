@@ -29,7 +29,7 @@ Run these commands from the `backend/` directory. Copy `.env.example` to `.env` 
 cp .env.example .env
 ```
 
-Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The application requires a readable `.env` file in its working directory, even when environment variables are supplied externally.
+Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The `.env` file is optional: variables already set in the environment take precedence, so containers can be configured with environment variables alone.
 
 ### Installation
 
@@ -80,7 +80,7 @@ cp .env.docker.example .env
 docker compose up -d --build
 ```
 
-The Compose service mounts `.env` read-only at `/app/.env`. Keep `PORT=8080` for its fixed container port mapping. Verify that MoneroPay can reach `MONEROPAY_CALLBACK_URL` and that wallet RPC is available at the configured endpoint; the example host port 18083 must match your separate wallet deployment.
+Compose passes `.env` to the container as environment variables. Keep `PORT=8080` for its fixed container port mapping. Verify that MoneroPay can reach `MONEROPAY_CALLBACK_URL` and that wallet RPC is available at the configured endpoint; the example host port 18083 must match your separate wallet deployment.
 
 3. Useful commands (from `backend/`)
 

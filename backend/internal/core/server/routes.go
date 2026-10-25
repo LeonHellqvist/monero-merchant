@@ -48,10 +48,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	r.Use(middleware.RequestSize(64 * 1024))
 
 	if moneroPayClient == nil {
-		moneroPayClient = moneropay.NewMoneroPayAPIClient()
-		if cfg.MoneroPayBaseURL != "" {
-			moneroPayClient.BaseURL = cfg.MoneroPayBaseURL
-		}
+		moneroPayClient = moneropay.NewMoneroPayAPIClient(cfg.MoneroPayBaseURL)
 	}
 
 	if rpcClient == nil {

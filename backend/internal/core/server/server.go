@@ -30,11 +30,7 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 		config:    cfg,
 		db:        db,
 		walletRPC: rpc.NewClient(cfg.MoneroWalletRPCEndpoint, cfg.MoneroWalletRPCUsername, cfg.MoneroWalletRPCPassword),
-		moneroPay: moneropay.NewMoneroPayAPIClient(),
-	}
-
-	if s.moneroPay != nil && cfg.MoneroPayBaseURL != "" {
-		s.moneroPay.BaseURL = cfg.MoneroPayBaseURL
+		moneroPay: moneropay.NewMoneroPayAPIClient(cfg.MoneroPayBaseURL),
 	}
 
 	if cfg.MoneroDaemonRPCEndpoint != "" {
