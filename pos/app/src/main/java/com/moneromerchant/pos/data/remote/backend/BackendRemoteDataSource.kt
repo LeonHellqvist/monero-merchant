@@ -94,7 +94,7 @@ class BackendRemoteDataSource @Inject constructor(
                                 URLProtocol.HTTP  -> URLProtocol.WS
                                 else -> protocol
                             }
-                            encodedPath = "/pos/ws/transaction"
+                            encodedPath = "pos/ws/transaction"
                             parameters.append("transaction_id", id.toString())
                         }
                     }

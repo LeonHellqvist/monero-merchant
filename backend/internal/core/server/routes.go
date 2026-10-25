@@ -89,56 +89,57 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	callbackHandler := callback.NewCallbackHandler(callbackService)
 	miscHandler := misc.NewMiscHandler(miscService)
 
-	// Public routes
-	r.Group(func(r chi.Router) {
-		// Auth routes
-		r.Post("/auth/login-admin", authHandler.LoginAdmin)
-		r.Post("/auth/login-vendor", authHandler.LoginVendor)
-		r.Post("/auth/login-pos", authHandler.LoginPos)
-		r.Post("/auth/refresh", authHandler.RefreshToken)
+	r.Route("/api", func(r chi.Router) {
+		// Public routes
+		r.Group(func(r chi.Router) {
+			// Auth routes
+			r.Post("/auth/login-admin", authHandler.LoginAdmin)
+			r.Post("/auth/login-vendor", authHandler.LoginVendor)
+			r.Post("/auth/login-pos", authHandler.LoginPos)
+			r.Post("/auth/refresh", authHandler.RefreshToken)
 
-		// Vendor routes
-		r.Post("/vendor/create", vendorHandler.CreateVendor)
+			// Vendor routes
+			r.Post("/vendor/create", vendorHandler.CreateVendor)
 
-		// Callback routes
-		r.Post("/callback/receive/{jwt}", callbackHandler.ReceiveTransaction)
-		r.Post("/receive/{jwt}", callbackHandler.ReceiveTransaction)
-		r.Post("/callback/lws-hook/{jwt}", callbackHandler.LwsHook)
+			// Callback routes
+			r.Post("/callback/receive/{jwt}", callbackHandler.ReceiveTransaction)
+			r.Post("/callback/lws-hook/{jwt}", callbackHandler.LwsHook)
 
-		// Miscellaneous routes
-		r.Get("/misc/health", miscHandler.GetHealth)
-	})
+			// Miscellaneous routes
+			r.Get("/misc/health", miscHandler.GetHealth)
+		})
 
-	// Protected routes
-	r.Group(func(r chi.Router) {
-		r.Use(localMiddleware.AuthMiddleware(cfg, authRepository))
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(localMiddleware.AuthMiddleware(cfg, authRepository))
 
-		// Auth routes
-		r.Post("/auth/update-password", authHandler.UpdatePassword)
+			// Auth routes
+			r.Post("/auth/update-password", authHandler.UpdatePassword)
 
-		// Admin routes
-		r.Post("/admin/invite", adminHandler.CreateInvite)
-		r.Get("/admin/vendors", adminHandler.ListVendors)
-		r.Get("/admin/balance", adminHandler.GetWalletBalance)
-		r.Post("/admin/transfer-balance", adminHandler.TransferBalance)
-		r.Post("/admin/delete", adminHandler.DeleteVendor)
+			// Admin routes
+			r.Post("/admin/invite", adminHandler.CreateInvite)
+			r.Get("/admin/vendors", adminHandler.ListVendors)
+			r.Get("/admin/balance", adminHandler.GetWalletBalance)
+			r.Post("/admin/transfer-balance", adminHandler.TransferBalance)
+			r.Post("/admin/delete", adminHandler.DeleteVendor)
 
-		// Vendor routes
-		r.Post("/vendor/delete", vendorHandler.DeleteVendor)
-		r.Post("/vendor/create-pos", vendorHandler.CreatePos)
-		r.Get("/vendor/balance", vendorHandler.GetAccountBalance)
-		r.Post("/vendor/transfer-balance", vendorHandler.TransferBalance)
-		r.Get("/vendor/pos-list", vendorHandler.ListPosDevices)
-		r.Get("/vendor/transactions", vendorHandler.ListTransactions)
-		r.Get("/vendor/export", vendorHandler.ExportTransactions)
+			// Vendor routes
+			r.Post("/vendor/delete", vendorHandler.DeleteVendor)
+			r.Post("/vendor/create-pos", vendorHandler.CreatePos)
+			r.Get("/vendor/balance", vendorHandler.GetAccountBalance)
+			r.Post("/vendor/transfer-balance", vendorHandler.TransferBalance)
+			r.Get("/vendor/pos-list", vendorHandler.ListPosDevices)
+			r.Get("/vendor/transactions", vendorHandler.ListTransactions)
+			r.Get("/vendor/export", vendorHandler.ExportTransactions)
 
-		// POS routes
-		r.Post("/pos/create-transaction", posHandler.CreateTransaction)
-		r.Get("/pos/transaction/{id}", posHandler.GetTransaction)
-		r.Get("/pos/transactions", posHandler.ListTransactions)
-		r.Get("/pos/balance", posHandler.GetPosBalance)
-		r.Get("/pos/export", posHandler.ExportTransactions)
-		r.HandleFunc("/pos/ws/transaction", posHandler.TransactionWS)
+			// POS routes
+			r.Post("/pos/create-transaction", posHandler.CreateTransaction)
+			r.Get("/pos/transaction/{id}", posHandler.GetTransaction)
+			r.Get("/pos/transactions", posHandler.ListTransactions)
+			r.Get("/pos/balance", posHandler.GetPosBalance)
+			r.Get("/pos/export", posHandler.ExportTransactions)
+			r.HandleFunc("/pos/ws/transaction", posHandler.TransactionWS)
+		})
 	})
 
 	return r

@@ -119,7 +119,8 @@ object BackendModule {
                 }
 
                 if (currentBackendUrl != null && currentBackendUrl.isNotBlank()) {
-                    url.takeFrom(currentBackendUrl)
+                    // Trailing slash so relative paths like "pos/balance" resolve under /api/
+                    url.takeFrom(currentBackendUrl.trimEnd('/') + "/api/")
                 } else {
                     android.util.Log.w("MainKtorClient", "Backend URL not set in DefaultRequest!")
                 }
@@ -172,7 +173,7 @@ object BackendModule {
                             val response = refreshClient.post {
                                 url {
                                     takeFrom(backendUrlForRefresh)
-                                    appendPathSegments("auth", "refresh")
+                                    appendPathSegments("api", "auth", "refresh")
                                 }
                                 header(HttpHeaders.ContentType, ContentType.Application.Json)
                                 setBody(mapOf("refresh_token" to currentRefreshToken))

@@ -228,12 +228,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example POST /vendor/delete. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login. No body: deletes the authenticated vendor.",
+        "description": "Example POST /api/vendor/delete. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login. No body: deletes the authenticated vendor.",
         "headers": [],
         "method": "POST",
         "name": "delete account",
         "sortPriority": 8000.0,
-        "url": "${[ host ]}/vendor/delete",
+        "url": "${[ host ]}/api/vendor/delete",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -274,12 +274,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example POST /vendor/transfer-balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login. No body: payout uses the stored vendor subaddress.",
+        "description": "Example POST /api/vendor/transfer-balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login. No body: payout uses the stored vendor subaddress.",
         "headers": [],
         "method": "POST",
         "name": "transfer balance",
         "sortPriority": 7000.0,
-        "url": "${[ host ]}/vendor/transfer-balance",
+        "url": "${[ host ]}/api/vendor/transfer-balance",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -320,12 +320,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /vendor/export. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/vendor/export. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "export transactions",
         "sortPriority": 5000.0,
-        "url": "${[ host ]}/vendor/export",
+        "url": "${[ host ]}/api/vendor/export",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -366,12 +366,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /vendor/transactions. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/vendor/transactions. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "list transactions",
         "sortPriority": 6000.0,
-        "url": "${[ host ]}/vendor/transactions",
+        "url": "${[ host ]}/api/vendor/transactions",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -414,7 +414,7 @@
           "text": "{\n  \"vendor_id\": ${[ vendor_id ]}\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /admin/delete. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example POST /api/admin/delete. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [
           {
             "enabled": true,
@@ -426,7 +426,7 @@
         "method": "POST",
         "name": "delete vendor",
         "sortPriority": 4333.333333333333,
-        "url": "${[ host ]}/admin/delete",
+        "url": "${[ host ]}/api/admin/delete",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -469,7 +469,7 @@
           "text": "{\n  \"vendor_id\": ${[ vendor_id ]}\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /admin/transfer-balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example POST /api/admin/transfer-balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [
           {
             "enabled": true,
@@ -481,7 +481,7 @@
         "method": "POST",
         "name": "transfer balance to vendor",
         "sortPriority": 5000.0,
-        "url": "${[ host ]}/admin/transfer-balance",
+        "url": "${[ host ]}/api/admin/transfer-balance",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -522,12 +522,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /admin/balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/admin/balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "total wallet balance",
         "sortPriority": 4000.0,
-        "url": "${[ host ]}/admin/balance",
+        "url": "${[ host ]}/api/admin/balance",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -570,7 +570,7 @@
           "text": "{\n  \"current_password\": \"${[ vendor_pass ]}\",\n  \"new_password\": \"${[ new_password ]}\"\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /auth/update-password. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example POST /api/auth/update-password. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [
           {
             "enabled": true,
@@ -582,7 +582,7 @@
         "method": "POST",
         "name": "update password",
         "sortPriority": 4000.0,
-        "url": "${[ host ]}/auth/update-password",
+        "url": "${[ host ]}/api/auth/update-password",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -623,12 +623,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /vendor/balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/vendor/balance. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "vendor wallet balance",
         "sortPriority": 3000.0,
-        "url": "${[ host ]}/vendor/balance",
+        "url": "${[ host ]}/api/vendor/balance",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -669,12 +669,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /vendor/pos-list. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/vendor/pos-list. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "list pos units",
         "sortPriority": 1000.0,
-        "url": "${[ host ]}/vendor/pos-list",
+        "url": "${[ host ]}/api/vendor/pos-list",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -717,7 +717,7 @@
           "text": "{\n  \"name\": \"${[ pos_name ]}\",\n  \"password\": \"${[ pos_pass ]}\"\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /vendor/create-pos. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example POST /api/vendor/create-pos. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [
           {
             "enabled": true,
@@ -729,7 +729,7 @@
         "method": "POST",
         "name": "register pos unit",
         "sortPriority": 2000.0,
-        "url": "${[ host ]}/vendor/create-pos",
+        "url": "${[ host ]}/api/vendor/create-pos",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -769,7 +769,7 @@
           "text": "{\n  \"name\": \"${[ vendor_name ]}\",\n  \"password\": \"${[ vendor_pass ]}\"\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /auth/login-vendor. Configure the host and placeholder variables in Global Variables before sending.",
+        "description": "Example POST /api/auth/login-vendor. Configure the host and placeholder variables in Global Variables before sending.",
         "headers": [
           {
             "enabled": true,
@@ -781,7 +781,7 @@
         "method": "POST",
         "name": "vendor login",
         "sortPriority": 0.0,
-        "url": "${[ host ]}/auth/login-vendor",
+        "url": "${[ host ]}/api/auth/login-vendor",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -822,12 +822,12 @@
         "authenticationType": "bearer",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /admin/vendors. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example GET /api/admin/vendors. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [],
         "method": "GET",
         "name": "list vendors",
         "sortPriority": 3000.0,
-        "url": "${[ host ]}/admin/vendors",
+        "url": "${[ host ]}/api/admin/vendors",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -867,7 +867,7 @@
           "text": "{\n  \"name\": \"${[ vendor_name ]}\",\n  \"password\": \"${[ vendor_pass ]}\",\n  \"monero_subaddress\": \"${[ xmr_address ]}\",\n  \"invite_code\": \"${[ invite_code ]}\"\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /vendor/create. Configure the host and placeholder variables in Global Variables before sending. Use a fresh invite code and a valid Monero payout subaddress.",
+        "description": "Example POST /api/vendor/create. Configure the host and placeholder variables in Global Variables before sending. Use a fresh invite code and a valid Monero payout subaddress.",
         "headers": [
           {
             "enabled": true,
@@ -879,7 +879,7 @@
         "method": "POST",
         "name": "register vendor",
         "sortPriority": 2000.0,
-        "url": "${[ host ]}/vendor/create",
+        "url": "${[ host ]}/api/vendor/create",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -922,7 +922,7 @@
           "text": "{\n  \"valid_until\": ${[ time ]},\n  \"forced_name\": null\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /admin/invite. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "description": "Example POST /api/admin/invite. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
         "headers": [
           {
             "enabled": true,
@@ -934,7 +934,7 @@
         "method": "POST",
         "name": "invite code",
         "sortPriority": 1000.0,
-        "url": "${[ host ]}/admin/invite",
+        "url": "${[ host ]}/api/admin/invite",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -974,7 +974,7 @@
           "text": "{\n  \"name\": \"${[ admin_name ]}\",\n  \"password\": \"${[ admin_pass ]}\"\n}"
         },
         "bodyType": "application/json",
-        "description": "Example POST /auth/login-admin. Configure the host and placeholder variables in Global Variables before sending.",
+        "description": "Example POST /api/auth/login-admin. Configure the host and placeholder variables in Global Variables before sending.",
         "headers": [
           {
             "enabled": true,
@@ -986,7 +986,7 @@
         "method": "POST",
         "name": "admin login",
         "sortPriority": 0.0,
-        "url": "${[ host ]}/auth/login-admin",
+        "url": "${[ host ]}/api/auth/login-admin",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,
@@ -1024,12 +1024,12 @@
         "authenticationType": "none",
         "body": {},
         "bodyType": null,
-        "description": "Example GET /misc/health. Configure the host and placeholder variables in Global Variables before sending.",
+        "description": "Example GET /api/misc/health. Configure the host and placeholder variables in Global Variables before sending.",
         "headers": [],
         "method": "GET",
         "name": "check health",
         "sortPriority": 0.0,
-        "url": "${[ host ]}/misc/health",
+        "url": "${[ host ]}/api/misc/health",
         "urlParameters": [],
         "settingSendCookies": {
           "enabled": false,

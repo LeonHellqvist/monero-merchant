@@ -173,7 +173,7 @@ updateTxLabel();
 // --- Health ---
 $("btn-health").onclick = async ()=>{
   try {
-    const r = await fetch("/misc/health");
+    const r = await fetch("/api/misc/health");
     const ct = r.headers.get("content-type")||"";
     $("out-health").textContent = pretty(ct.includes("json")? await r.json(): await r.text());
   } catch (err) {
@@ -190,7 +190,7 @@ $("btn-v-create").onclick = async ()=>{
     invite_code: $("v-invite").value.trim()
   };
   try {
-    const r = await fetch("/vendor/create", {
+    const r = await fetch("/api/vendor/create", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(body)
@@ -206,7 +206,7 @@ $("btn-v-create").onclick = async ()=>{
 $("btn-v-login").onclick = async ()=>{
   const body = { name:$("lv-name").value.trim(), password:$("lv-pass").value.trim() };
   try {
-    const r = await fetch("/auth/login-vendor", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+    const r = await fetch("/api/auth/login-vendor", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
     const data = await r.json().catch(()=> ({}));
     vendor.access  = data.access_token || null;
     vendor.refresh = data.refresh_token || null;
@@ -220,7 +220,7 @@ $("btn-v-login").onclick = async ()=>{
 $("btn-v-balance").onclick = async ()=>{
   try {
     const headers = vendor.access ? { Authorization: `${vendor.tokenType} ${vendor.access}` } : {};
-    const r = await fetch("/vendor/balance", { headers });
+    const r = await fetch("/api/vendor/balance", { headers });
     const data = await r.json().catch(()=> ({}));
     outVendorBalance.textContent = pretty(data);
     outVendorBalance.classList.remove("muted", "err");
@@ -235,7 +235,7 @@ $("btn-v-balance").onclick = async ()=>{
 $("btn-pos-create").onclick = async ()=>{
   const body = { name:$("pos-name").value.trim(), password:$("pos-pass").value.trim() };
   try {
-    const r = await fetch("/vendor/create-pos", {
+    const r = await fetch("/api/vendor/create-pos", {
       method:"POST",
       headers: Object.assign({ "Content-Type":"application/json" }, vendor.access ? { Authorization:`${vendor.tokenType} ${vendor.access}` } : {}),
       body: JSON.stringify(body)
@@ -251,7 +251,7 @@ $("btn-pos-create").onclick = async ()=>{
 $("btn-pos-login").onclick = async ()=>{
   const body = { name:$("lp-name").value.trim(), password:$("lp-pass").value.trim(), vendor_id: Number($("lp-vendor-id").value || 0) };
   try {
-    const r = await fetch("/auth/login-pos", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+    const r = await fetch("/api/auth/login-pos", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
     const data = await r.json().catch(()=> ({}));
     pos.access  = data.access_token || null;
     pos.refresh = data.refresh_token || null;
@@ -265,7 +265,7 @@ $("btn-pos-login").onclick = async ()=>{
 $("btn-pos-refresh").onclick = async ()=>{
   if (!pos.refresh) { $("out-pos-auth").textContent = "No POS refresh_token."; return; }
   try {
-    const r = await fetch("/auth/refresh", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: pos.refresh }) });
+    const r = await fetch("/api/auth/refresh", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ refresh_token: pos.refresh }) });
     const data = await r.json().catch(()=> ({}));
     pos.access  = data.access_token  || pos.access;
     pos.refresh = data.refresh_token || pos.refresh;
@@ -292,7 +292,7 @@ $("btn-pos-tx").onclick = async ()=>{
     return;
   }
   try {
-    const r = await fetch(`/pos/transaction/${id}`, { headers: { Authorization:`${pos.tokenType} ${pos.access}` } });
+    const r = await fetch(`/api/pos/transaction/${id}`, { headers: { Authorization:`${pos.tokenType} ${pos.access}` } });
     const data = await r.json().catch(()=> ({}));
     outPosTx.textContent = `Status ${r.status}\n${pretty(data)}`;
     outPosTx.classList.remove("muted", "err");
@@ -328,7 +328,7 @@ $("btn-pos-create-tx").onclick = async ()=>{
     description: txDescInput.value.trim() || null
   };
   try {
-    const r = await fetch("/pos/create-transaction", {
+    const r = await fetch("/api/pos/create-transaction", {
       method:"POST",
       headers:{
         "Content-Type":"application/json",
@@ -355,7 +355,7 @@ $("btn-pos-export").onclick = async ()=>{
     return;
   }
   try {
-    const r = await fetch("/pos/export", {
+    const r = await fetch("/api/pos/export", {
       headers: { Authorization: `${pos.tokenType} ${pos.access}` }
     });
     const data = await r.json().catch(()=> ({}));
