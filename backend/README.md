@@ -11,33 +11,32 @@ A backend service for managing Monero Merchant operations. It provides APIs for 
 - Admin invite system
 - Health check endpoints
 - Transfer completion and withdrawal management
-- **Vendor Dashboard** - Web-based interface for vendors to manage their account
 
 ## Getting Started
 
 ### Prerequisites
 
-- Go 1.23+
+- Go 1.26.5 or newer
 - PostgreSQL database
 - MoneroPay API instance (git apply `moneropay.patch`)
 - Monero Wallet RPC
 
 ### Configuration
 
-Copy `.env.example` to `.env` and fill in your environment variables:
+Run these commands from the `backend/` directory. Copy `.env.example` to `.env` and fill in your environment variables:
 
 ```sh
 cp .env.example .env
 ```
 
-Edit `.env` to set database credentials, JWT secrets, MoneroPay URLs, and wallet RPC settings.
+Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The application requires a readable `.env` file in its working directory, even when environment variables are supplied externally.
 
 ### Installation
 
 1. Install dependencies:
 
    ```sh
-   go mod tidy
+   go mod download
    ```
 
 2. Start the backend server:
@@ -50,12 +49,14 @@ The server will start on the port specified in your `.env` file.
 
 ### MoneroPay + backend: Docker Setup
 
-### Prerequisites
+For the integrated stack, use `make install` from the repository root; see the [root README](../README.md). The instructions below use the separate `backend/docker-compose.yaml` deployment and an independently running MoneroPay/wallet RPC instance.
+
+#### Prerequisites
 
 - Docker and Docker Compose
 - jq and psql optional for tests
 
-1. Setup MoneroPay
+1. Set up MoneroPay in a separate terminal/directory
 
 ```
 git clone https://gitlab.com/moneropay/moneropay.git
@@ -66,18 +67,22 @@ cp docker-compose.override.yaml.example docker-compose.override.yaml
 docker compose up -d
 ```
 
-2. Setup backend
+2. Set up the backend from your chosen parent directory
 
 ```
 git clone https://github.com/Monero-Merchant/monero-merchant
 cd monero-merchant/backend
 cp .env.docker.example .env
-# edit .env (use: openssl rand -hex 32 for secrets) and docker-compose.yaml
-# if Postgres already uses host 5432, map to a free port: 55432:5432
+# edit .env: replace every CHANGEME, including JWT_LWS_TOKEN
+# use a different openssl rand -hex 32 value for each secret
+# configure reachable MoneroPay, callback, and wallet RPC URLs
+# PostgreSQL is published on host port 55432 by default
 docker compose up -d --build
 ```
 
-3. Useful commands
+The Compose service mounts `.env` read-only at `/app/.env`. Keep `PORT=8080` for its fixed container port mapping. Verify that MoneroPay can reach `MONEROPAY_CALLBACK_URL` and that wallet RPC is available at the configured endpoint; the example host port 18083 must match your separate wallet deployment.
+
+3. Useful commands (from `backend/`)
 
 ```
 # show containers
@@ -86,53 +91,26 @@ docker compose ps
 # follow logs
 docker compose logs -f backend
 
-# restart API
-docker compose restart backend
+# recreate API after environment changes
+docker compose up -d --force-recreate backend
 
 # rebuild API only
 docker compose up -d --build backend
 ```
 
-## Vendor Dashboard
-
-A web-based dashboard is available for vendors to manage their account without needing API tools like Postman or curl.
-
-### Accessing the Dashboard
-
-Navigate to `/vendor-dashboard.html` on your backend server (e.g., `https://your-server.com/vendor-dashboard.html`).
-
-### Dashboard Features
-
-- **Account Overview** - View your current balance and transaction statistics
-- **Transaction History** - Browse all transactions with filtering by status:
-  - Pending (awaiting payment)
-  - Confirmed (payment received)
-  - Transferred (paid out to your wallet)
-- **CSV Export** - Export transaction history in Koinly-compatible format for tax reporting
-- **POS Device Management** - Create and manage multiple POS devices
-- **Withdrawals** - Initiate transfers of your balance to your Monero payout address
-- **Account Settings** - Update password and manage your account
-
-### Technical Details
-
-- Single HTML file with no external dependencies
-- Works in any modern browser
-- JWT-based authentication with automatic token refresh
-- XSS protection built-in
-
 ## How to use it
 
-In the future a web interface should be created for easier usage. For now, you can use tools like Postman or curl to interact with the API.
+Use tools such as Yaak, Postman or curl to interact with the API.
 
 1. **Login as admin**: Use the `/auth/login-admin` endpoint with admin credentials to obtain a JWT token.
 2. **Create an invite**: Use the `/admin/invite` endpoint to create a new invite code.
-3. **Register a vendor**: Use the `/auth/register` endpoint with the invite code to create a new vendor account.
+3. **Register a vendor**: Use the `/vendor/create` endpoint with the invite code to create a new vendor account.
 4. **Login vendor**: Use the `/auth/login-vendor` endpoint to obtain a JWT token.
 5. **Create POS**: Use the `/vendor/create-pos` endpoint to create a new POS account under the vendor.
 
 Now the POS account can be used with the Monero Merchant app.
 
-To transfer the balance from the vendor account to the Monero wallet, use the `/vendor/transfer-balance` endpoint. It will not be instant and will group transfers to be able to payout more often. This should happen automatically around every 20 minutes.
+To transfer the balance from the vendor account to the Monero wallet, use the `/vendor/transfer-balance` endpoint. It will not be instant and will group transfers to be able to payout more often. The background worker checks queued transfers every 30 seconds.
 
 ### Example: Login as admin
 
@@ -151,7 +129,7 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 ```json
 {
-  "valid_until": "2025-12-31T23:59:59Z",
+  "valid_until": 1822307285,
   "forced_name": null
 }
 ```
@@ -164,7 +142,8 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 {
   "name": "vendor1",
   "password": "yourStrongPassword",
-  "invite_code": "ac8eajc3j"
+  "invite_code": "<invite-code>",
+  "monero_subaddress": "<vendor-payout-subaddress>"
 }
 ```
 
@@ -194,19 +173,44 @@ To transfer the balance from the vendor account to the Monero wallet, use the `/
 
 **POST** `/vendor/transfer-balance`
 
-```json
-{
-  "address": "your_monero_address"
-}
-```
+No request body is required. The authenticated vendor's stored payout subaddress is used.
 
 ## API Overview
 
-- **Auth**: Login for vendors, POS, and admin.
-- **Vendor**: Create vendor, delete vendor, create POS, get balance, initiate transfer.
-- **POS**: Create transaction, get transaction details.
-- **Admin**: Create invite codes.
-- **Misc**: Health check endpoint.
+Paths are relative to your backend origin. Admin/vendor/POS authentication means `Authorization: Bearer <access_token>` with the indicated role. Send JSON bodies with `Content-Type: application/json`; values in angle brackets are placeholders. XMR amounts use atomic units (1 XMR = 1,000,000,000,000 units).
+
+| Method | Endpoint | Authentication | Verified request body | Behavior / verification notes |
+| --- | --- | --- | --- | --- |
+| POST | `/auth/login-admin` | None | `{"name":"<admin-name>","password":"<admin-password>"}` | Returns access and refresh tokens; credentials come from configuration. |
+| POST | `/auth/login-vendor` | None | `{"name":"<vendor-name>","password":"<vendor-password>"}` | Returns access and refresh tokens and vendor ID. |
+| POST | `/auth/update-password` | Vendor or POS | `{"current_password":"<current-password>","new_password":"<new-password>"}` | Changes own password and returns replacement tokens. Vendor POS reset also accepts `pos_id`. |
+| POST | `/admin/invite` | Admin | `{"valid_until":1822307285,"forced_name":null}` | Creates an invite; expiry is Unix seconds, forced name is nullable. |
+| GET | `/admin/vendors` | Admin | None | Lists vendors with calculated balances.  |
+| GET | `/admin/balance` | Admin | None | Reads shared wallet account 0: total, unlocked and locked balances.  |
+| POST | `/admin/transfer-balance` | Admin | `{"vendor_id":1}` | Queues the selected vendor's payout to its stored subaddress. |
+| POST | `/admin/delete` | Admin | `{"vendor_id":1}` | Deletes the selected vendor through the vendor service. |
+| POST | `/vendor/create` | None | `{"name":"<vendor-name>","password":"<vendor-password>","monero_subaddress":"<payout-subaddress>","invite_code":"<invite-code>"}` | Invite-based registration; optional `email` is also supported. |
+| GET | `/vendor/pos-list` | Vendor | None | Lists the authenticated vendor's POS units. |
+| POST | `/vendor/create-pos` | Vendor | `{"name":"<pos-name>","password":"<pos-password>"}` | Creates a POS account belonging to the authenticated vendor. |
+| GET | `/vendor/balance` | Vendor | None | Sums confirmed, untransferred sale amounts; this is an account balance, not a direct wallet RPC balance. |
+| GET | `/vendor/export` | Vendor | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
+| GET | `/vendor/transactions` | Vendor | None | Returns confirmed and pending transaction summaries. |
+| POST | `/vendor/transfer-balance` | Vendor | None | Queues own payout using the stored subaddress.  |
+| POST | `/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
+| GET | `/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
+| POST | `/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
+| POST | `/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
+| POST | `/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
+| GET | `/pos/transaction/{id}` | POS | None | Reads a sale belonging to the authenticated vendor and POS. |
+| GET | `/pos/transactions` | POS | None | Lists own confirmed payment summaries and pending sales. |
+| GET | `/pos/balance` | POS | None | Sums own confirmed, untransferred sale amounts. |
+| GET | `/pos/export` | POS | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
+| GET (WebSocket upgrade) | `/pos/ws/transaction?transaction_id=<id>` | POS | None | Subscribes to updates for an owned sale. Router uses `HandleFunc`; the handler requires a valid WebSocket handshake. |
+| POST | `/callback/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | MoneroPay callback body; JWT signed with `JWT_MONEROPAY_SECRET`. |
+| POST | `/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | Alias for the same MoneroPay callback handler. |
+| POST | `/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Resolves one recent matching sale by amount. |
+
+Replace `$ADMIN_JWT` / `$VENDOR_JWT` token placeholders with tokens returned by login. The invite request also contains a saved JWT; replace it with a fresh admin token.
 
 ## Project Structure
 
@@ -221,7 +225,9 @@ See `.env.example` for all required variables:
 
 - `PORT`: Server port
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`: Database settings
-- `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_MONEROPAY_SECRET`: JWT secrets
+- `ADMIN_NAME`, `ADMIN_PASSWORD`: Required admin credentials
+- `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_MONEROPAY_SECRET`: Required JWT secrets
+- `JWT_LWS_TOKEN`: Required static token for the LWS callback endpoint
 - `MONEROPAY_BASE_URL`, `MONEROPAY_CALLBACK_URL`: MoneroPay API settings
 - `MONERO_WALLET_RPC_ENDPOINT`, `MONERO_WALLET_RPC_USERNAME`, `MONERO_WALLET_RPC_PASSWORD`: Wallet RPC settings (should be same as MoneroPay)
 - `TRUSTED_PROXY_HEADER`: Optional header for trusted proxy (for example, `X-Real-IP`)
