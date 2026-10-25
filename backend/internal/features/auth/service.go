@@ -37,10 +37,6 @@ func NewAuthService(repo AuthRepository, cfg *config.Config) *AuthService {
 	}
 */
 func (s *AuthService) AuthenticateAdmin(ctx context.Context, name string, password string) (accessToken string, refreshToken string, err error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	nameSupplied := sha256.Sum256([]byte(name))
 	nameExpected := sha256.Sum256([]byte(s.config.AdminName))
 	nameMatch := subtle.ConstantTimeCompare(nameSupplied[:], nameExpected[:])

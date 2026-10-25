@@ -14,8 +14,6 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/features/auth"
 )
 
-type contextKey string
-
 func AuthMiddleware(cfg *config.Config, repo auth.AuthRepository) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
