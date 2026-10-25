@@ -1098,6 +1098,52 @@
           "enabled": false,
           "value": "auto"
         }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_einHS1GLgY",
+        "createdAt": "2026-10-25T20:23:10.259345139",
+        "updatedAt": "2026-10-25T20:23:10.259345139",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": null,
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ vendor_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/rates?currencies=EUR,USD. GET /api/rates/currencies lists the supported codes. Works with an admin, vendor or POS access token. Configure the host and placeholder variables in Global Variables before sending.",
+        "headers": [],
+        "method": "GET",
+        "name": "get exchange rates",
+        "sortPriority": 2.0,
+        "url": "${[ host ]}/api/rates?currencies=EUR,USD",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
       }
     ],
     "grpcRequests": [],
