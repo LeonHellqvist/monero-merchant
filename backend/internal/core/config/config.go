@@ -1,7 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"strconv"
 
@@ -40,6 +42,8 @@ type Config struct {
 
 	// Monero Daemon RPC Configuration
 	MoneroDaemonRPCEndpoint string
+	MoneroDaemonRPCUsername string
+	MoneroDaemonRPCPassword string
 
 	// Wallet Settings
 	WalletName              string
@@ -51,7 +55,8 @@ type Config struct {
 }
 
 func LoadConfig() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
+	// .env is optional; environment variables can be passed directly instead
+	if err := godotenv.Load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("error loading .env file: %w", err)
 	}
 
@@ -87,6 +92,8 @@ func LoadConfig() (*Config, error) {
 
 		// Monero Daemon RPC Configuration
 		MoneroDaemonRPCEndpoint: os.Getenv("MONERO_DAEMON_RPC_ENDPOINT"),
+		MoneroDaemonRPCUsername: os.Getenv("MONERO_DAEMON_RPC_USERNAME"),
+		MoneroDaemonRPCPassword: os.Getenv("MONERO_DAEMON_RPC_PASSWORD"),
 
 		// Wallet Settings
 		WalletName:     os.Getenv("WALLET_NAME"),

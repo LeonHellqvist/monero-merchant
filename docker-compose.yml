@@ -130,8 +130,8 @@ services:
       WALLET_NAME: ${WALLET_NAME}
       WALLET_PASSWORD: ${WALLET_PASSWORD}
       WALLET_AUTO_REFRESH_PERIOD: ${WALLET_AUTO_REFRESH_PERIOD}
-    volumes:
-      - ./.env:/app/.env:ro
+
+      TRUSTED_PROXY_HEADER: ${TRUSTED_PROXY_HEADER:-}
     ports:
       - "${BACKEND_PORT}:8080"
     extra_hosts:

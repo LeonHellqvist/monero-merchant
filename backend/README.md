@@ -29,7 +29,7 @@ Run these commands from the `backend/` directory. Copy `.env.example` to `.env` 
 cp .env.example .env
 ```
 
-Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The application requires a readable `.env` file in its working directory, even when environment variables are supplied externally.
+Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The `.env` file is optional: variables already set in the environment take precedence, so containers can be configured with environment variables alone.
 
 ### Installation
 
@@ -80,7 +80,7 @@ cp .env.docker.example .env
 docker compose up -d --build
 ```
 
-The Compose service mounts `.env` read-only at `/app/.env`. Keep `PORT=8080` for its fixed container port mapping. Verify that MoneroPay can reach `MONEROPAY_CALLBACK_URL` and that wallet RPC is available at the configured endpoint; the example host port 18083 must match your separate wallet deployment.
+Compose passes `.env` to the container as environment variables. Keep `PORT=8080` for its fixed container port mapping. Verify that MoneroPay can reach `MONEROPAY_CALLBACK_URL` and that wallet RPC is available at the configured endpoint; the example host port 18083 must match your separate wallet deployment.
 
 3. Useful commands (from `backend/`)
 
@@ -198,6 +198,7 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | POST | `/api/vendor/transfer-balance` | Vendor | None | Queues own payout using the stored subaddress.  |
 | POST | `/api/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
 | GET | `/api/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
+| GET | `/api/misc/daemon-status` | None | None | Reports the configured Monero daemon: `synced`, `height`, `target_height`, `nettype` and connection counts. `status` is 503 when no daemon is configured or it is unreachable. |
 | POST | `/api/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
 | POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
 | POST | `/api/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
@@ -229,4 +230,5 @@ See `.env.example` for all required variables:
 - `JWT_LWS_TOKEN`: Required static token for the LWS callback endpoint
 - `MONEROPAY_BASE_URL`, `MONEROPAY_CALLBACK_URL`: MoneroPay API settings
 - `MONERO_WALLET_RPC_ENDPOINT`, `MONERO_WALLET_RPC_USERNAME`, `MONERO_WALLET_RPC_PASSWORD`: Wallet RPC settings (should be same as MoneroPay)
+- `MONERO_DAEMON_RPC_ENDPOINT`, `MONERO_DAEMON_RPC_USERNAME`, `MONERO_DAEMON_RPC_PASSWORD`: Optional Monero daemon RPC for node status (`/api/misc/daemon-status`); username and password are needed when monerod runs with `--rpc-login`
 - `TRUSTED_PROXY_HEADER`: Optional header for trusted proxy (for example, `X-Real-IP`)

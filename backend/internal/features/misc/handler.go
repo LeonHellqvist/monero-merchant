@@ -39,3 +39,23 @@ func (h *MiscHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 	io.Copy(io.Discard, r.Body)
 }
+
+type DaemonStatusResponse struct {
+	Status              int    `json:"status"`
+	Synced              bool   `json:"synced"`
+	Height              uint64 `json:"height"`
+	TargetHeight        uint64 `json:"target_height"`
+	Nettype             string `json:"nettype"`
+	IncomingConnections uint64 `json:"incoming_connections"`
+	OutgoingConnections uint64 `json:"outgoing_connections"`
+}
+
+func (h *MiscHandler) GetDaemonStatus(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	resp := h.service.GetDaemonStatus(ctx)
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(resp)
+}

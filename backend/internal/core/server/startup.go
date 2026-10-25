@@ -58,19 +58,34 @@ func (s *Server) ensureWalletReady(parentCtx context.Context) {
 		return
 	}
 
-	locked, unlocked, err := s.fetchWalletBalances(parentCtx)
-	if err != nil {
-		if isWalletNotOpenErr(err) {
-			if err := s.openWallet(parentCtx); err != nil {
-				log.Printf("Failed to open wallet %q: %v", s.config.WalletName, err)
+	// wallet-rpc may still be starting, so retry a few times before giving up
+	const attempts = 3
+	var locked, unlocked uint64
+	var err error
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if attempt > 1 {
+			log.Printf("Retrying wallet setup in 5s (attempt %d/%d)", attempt, attempts)
+			select {
+			case <-parentCtx.Done():
 				return
+			case <-time.After(5 * time.Second):
 			}
-			locked, unlocked, err = s.fetchWalletBalances(parentCtx)
 		}
+
+		locked, unlocked, err = s.fetchWalletBalances(parentCtx)
+		if err != nil && isWalletNotOpenErr(err) {
+			if err = s.openWallet(parentCtx); err == nil {
+				locked, unlocked, err = s.fetchWalletBalances(parentCtx)
+			}
+		}
+		if err == nil {
+			break
+		}
+		log.Printf("Wallet setup failed (attempt %d/%d): %v", attempt, attempts, err)
 	}
 
 	if err != nil {
-		log.Printf("Failed to fetch wallet balances: %v", err)
+		log.Printf("Failed to fetch wallet balances after %d attempts: %v", attempts, err)
 		return
 	}
 
@@ -217,5 +232,12 @@ func isWalletNotOpenErr(err error) bool {
 		return false
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "no wallet") || strings.Contains(msg, "wallet does not exist") || strings.Contains(msg, "wallet open")
+	return strings.Contains(msg, "no wallet") ||
+		strings.Contains(msg, "wallet does not exist") ||
+		strings.Contains(msg, "wallet open") ||
+		strings.Contains(msg, "failed to open wallet") ||
+		strings.Contains(msg, "file not found") ||
+		strings.Contains(msg, "not available") ||
+		strings.Contains(msg, "cannot be opened") ||
+		strings.Contains(msg, "doesn't exist")
 }
