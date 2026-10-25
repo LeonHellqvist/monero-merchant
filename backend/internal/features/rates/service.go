@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"strings"
 	"sync"
 	"time"
@@ -102,7 +103,7 @@ func (s *RatesService) GetRates(ctx context.Context, currencies []string) (*Rate
 	var fiat map[string]Rate
 	for _, c := range currencies {
 		if c == baseCurrency {
-			resp.Rates[c] = Rate{Rate: price.Value, Date: price.UpdatedAt.UTC().Format(time.DateOnly)}
+			resp.Rates[c] = Rate{Rate: roundPrice(price.Value), Date: price.UpdatedAt.UTC().Format(time.DateOnly)}
 			continue
 		}
 		if fiat == nil {
@@ -114,10 +115,15 @@ func (s *RatesService) GetRates(ctx context.Context, currencies []string) (*Rate
 		if !ok {
 			return nil, fmt.Errorf("%w: no rate for %s", ErrUnavailable, c)
 		}
-		resp.Rates[c] = Rate{Rate: price.Value * rate.Rate, Date: rate.Date}
+		resp.Rates[c] = Rate{Rate: roundPrice(price.Value * rate.Rate), Date: rate.Date}
 	}
 
 	return resp, nil
+}
+
+// Round to 2 decimals
+func roundPrice(v float64) float64 {
+	return math.Round(v*100) / 100
 }
 
 func fiatTable(rates []frankfurter.Rate) map[string]Rate {
