@@ -2,13 +2,12 @@ package auth
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,15 +36,10 @@ func NewAuthService(repo AuthRepository, cfg *config.Config) *AuthService {
 	}
 */
 func (s *AuthService) AuthenticateAdmin(ctx context.Context, name string, password string) (accessToken string, refreshToken string, err error) {
-	nameSupplied := sha256.Sum256([]byte(name))
-	nameExpected := sha256.Sum256([]byte(s.config.AdminName))
-	nameMatch := subtle.ConstantTimeCompare(nameSupplied[:], nameExpected[:])
-
-	passSupplied := sha256.Sum256([]byte(password))
-	passExpected := sha256.Sum256([]byte(s.config.AdminPassword))
-	passMatch := subtle.ConstantTimeCompare(passSupplied[:], passExpected[:])
-
-	if (nameMatch & passMatch) != 1 {
+	// Compare both so a wrong name takes as long as a wrong password
+	nameMatch := utils.SecureCompare(name, s.config.AdminName)
+	passMatch := utils.SecureCompare(password, s.config.AdminPassword)
+	if !nameMatch || !passMatch {
 		return "", "", errors.New("invalid credentials")
 	}
 
