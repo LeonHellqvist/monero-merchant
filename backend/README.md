@@ -20,6 +20,7 @@ A backend service for managing Monero Merchant operations. It provides APIs for 
 - PostgreSQL database
 - MoneroPay API instance (git apply `moneropay.patch`)
 - Monero Wallet RPC
+- Outbound HTTPS to `api.coinpaprika.com` and `api.frankfurter.dev` for exchange rates
 
 ### Configuration
 
@@ -199,6 +200,8 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | POST | `/api/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
 | GET | `/api/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
 | GET | `/api/misc/daemon-status` | None | None | Reports the configured Monero daemon: `synced`, `height`, `target_height`, `nettype` and connection counts. `status` is 503 when no daemon is configured or it is unreachable. |
+| GET | `/api/rates?currencies=EUR,CHF` | Admin, vendor or POS | None | XMR price in each requested currency as `{rate, date}`, plus `xmr_updated_at` and `stale` (price older than 30 min). 400 for an unsupported currency, 503 if the rates can't be fetched yet. |
+| GET | `/api/rates/currencies` | Admin, vendor or POS | None | Lists the supported currencies. |
 | POST | `/api/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
 | POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
 | POST | `/api/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
@@ -216,8 +219,9 @@ Replace `$ADMIN_JWT` / `$VENDOR_JWT` token placeholders with tokens returned by 
 
 - `cmd/api/main.go`: Entry point for the server.
 - `internal/core/`: Core configuration, models, server setup.
-- `internal/features/`: Business logic for vendor, pos, admin, auth, callback, misc.
+- `internal/features/`: Business logic for vendor, pos, admin, auth, callback, misc, rates.
 - `internal/thirdparty/moneropay/`: MoneroPay API client and models.
+- `internal/thirdparty/coinpaprika/`, `internal/thirdparty/frankfurter/`: Exchange rate API clients.
 
 ## Environment Variables
 
@@ -232,3 +236,4 @@ See `.env.example` for all required variables:
 - `MONERO_WALLET_RPC_ENDPOINT`, `MONERO_WALLET_RPC_USERNAME`, `MONERO_WALLET_RPC_PASSWORD`: Wallet RPC settings (should be same as MoneroPay)
 - `MONERO_DAEMON_RPC_ENDPOINT`, `MONERO_DAEMON_RPC_USERNAME`, `MONERO_DAEMON_RPC_PASSWORD`: Optional Monero daemon RPC for node status (`/api/misc/daemon-status`); username and password are needed when monerod runs with `--rpc-login`
 - `TRUSTED_PROXY_HEADER`: Optional header for trusted proxy (for example, `X-Real-IP`)
+- `FRANKFURTER_BASE_URL`: Optional, for a self-hosted Frankfurter instance (defaults to `https://api.frankfurter.dev`)
