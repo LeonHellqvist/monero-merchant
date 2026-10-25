@@ -34,9 +34,7 @@ func NewServer(cfg *config.Config, db *gorm.DB) *Server {
 	}
 
 	if cfg.MoneroDaemonRPCEndpoint != "" {
-		s.daemonRPC = rpc.NewClient(cfg.MoneroDaemonRPCEndpoint, "", "")
-	} else {
-		s.daemonRPC = s.walletRPC
+		s.daemonRPC = rpc.NewClient(cfg.MoneroDaemonRPCEndpoint, cfg.MoneroDaemonRPCUsername, cfg.MoneroDaemonRPCPassword)
 	}
 
 	return s
@@ -49,7 +47,7 @@ func (s *Server) Start() error {
 
 	s.runStartupSequence(ctx)
 
-	s.router = NewRouter(ctx, s.config, s.db, s.walletRPC, s.moneroPay)
+	s.router = NewRouter(ctx, s.config, s.db, s.walletRPC, s.daemonRPC, s.moneroPay)
 
 	server := &http.Server{
 		Addr:              "0.0.0.0:" + s.config.Port,

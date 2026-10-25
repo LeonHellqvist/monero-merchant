@@ -23,7 +23,7 @@ import (
 )
 
 // Accept a context tied to server lifecycle to stop background loops on shutdown
-func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *rpc.Client, moneroPayClient *moneropay.MoneroPayAPIClient) *chi.Mux {
+func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *rpc.Client, daemonRPC *rpc.Client, moneroPayClient *moneropay.MoneroPayAPIClient) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -76,7 +76,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	posService.StartPendingCleanup(ctx, 15*time.Minute, 2*time.Hour)
 	callbackService := callback.NewCallbackService(callbackRepository, cfg, moneroPayClient)
 	callbackService.StartConfirmationChecker(ctx, 2*time.Second) // Check for confirmations every 2 seconds
-	miscService := misc.NewMiscService(miscRepository, cfg, moneroPayClient)
+	miscService := misc.NewMiscService(miscRepository, cfg, moneroPayClient, daemonRPC)
 
 	// Initialize handlers
 	adminHandler := admin.NewAdminHandler(adminService, vendorService)
@@ -104,6 +104,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 
 			// Miscellaneous routes
 			r.Get("/misc/health", miscHandler.GetHealth)
+			r.Get("/misc/daemon-status", miscHandler.GetDaemonStatus)
 		})
 
 		// Protected routes
