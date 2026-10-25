@@ -58,7 +58,7 @@ services:
   # MoneroPay
   # ------------------------
   moneropay:
-    image: registry.gitlab.com/moneropay/moneropay:v2
+    image: registry.gitlab.com/moneropay/moneropay:v2.8.1@sha256:e480b174755c3a2c33ba11cbad628ed9f7e6935c3081f954fc9b5e7d7c21ddd2
     environment:
       RPC_ADDRESS: http://monero-wallet-rpc:28081/json_rpc
       RPC_USERNAME: ${MONERO_WALLET_RPC_USERNAME}
