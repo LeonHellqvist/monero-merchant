@@ -152,7 +152,6 @@ func (s *VendorService) completeTransfers(ctx context.Context) {
 				return
 			}
 			log.Println("Transfer completed successfully")
-			return
 		}() // end per-iteration scope
 		if batchErr != nil {
 			break

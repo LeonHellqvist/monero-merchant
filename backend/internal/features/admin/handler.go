@@ -97,7 +97,6 @@ func (h *AdminHandler) ListVendors(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	r = r.WithContext(ctx)
 
 	vendors, err := h.service.ListVendorsWithBalances(ctx)
 	if err != nil {
@@ -127,7 +126,6 @@ func (h *AdminHandler) GetWalletBalance(w http.ResponseWriter, r *http.Request) 
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	r = r.WithContext(ctx)
 
 	balance, httpErr := h.vendorService.GetBalance(ctx, 0)
 	if httpErr != nil {
