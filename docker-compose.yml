@@ -12,8 +12,10 @@ services:
   # MoneroPay wallet RPC
   # ------------------------
   monero-wallet-rpc:
-    image: ghcr.io/monero-merchant/monero-merchant-wallet-rpc:0.18.5.4
+    image: ghcr.io/monero-merchant/monero-merchant-wallet-rpc:0.18.5.4-1
     environment:
+      MONERO_WALLET_RPC_USERNAME: ${MONERO_WALLET_RPC_USERNAME:?run ./setup.sh to generate wallet RPC credentials}
+      MONERO_WALLET_RPC_PASSWORD: ${MONERO_WALLET_RPC_PASSWORD:?run ./setup.sh to generate wallet RPC credentials}
       MONERO_DAEMON_RPC_USERNAME: ${MONERO_DAEMON_RPC_USERNAME:-}
       MONERO_DAEMON_RPC_PASSWORD: ${MONERO_DAEMON_RPC_PASSWORD:-}
     command: >-
@@ -21,7 +23,6 @@ services:
       --rpc-bind-ip=0.0.0.0
       --confirm-external-bind
       --rpc-bind-port=28081
-      --disable-rpc-login
       --daemon-host=${MONERO_DAEMON_RPC_HOSTNAME}
       --daemon-port=${MONERO_DAEMON_RPC_PORT}
     volumes:
@@ -30,7 +31,7 @@ services:
       change-vol-ownership:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail localhost:28081/json_rpc -d '{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}'"]
+      test: ["CMD-SHELL", "curl --fail --silent --digest -u \"$${MONERO_WALLET_RPC_USERNAME}:$${MONERO_WALLET_RPC_PASSWORD}\" localhost:28081/json_rpc -d '{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}'"]
       interval: 5s
       timeout: 5s
       retries: 10

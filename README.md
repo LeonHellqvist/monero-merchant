@@ -158,6 +158,8 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 `make install`
 
+To update an existing install, run `git pull` and then `make install` again. It keeps your `.env` and only fills in values that are missing.
+
 ### Start / Restart / Rebuild / Stop
 
 `make up` # start services
