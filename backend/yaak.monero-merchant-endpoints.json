@@ -1055,6 +1055,49 @@
           "enabled": false,
           "value": "auto"
         }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_xcZ6ugOB5d",
+        "createdAt": "2026-10-25T16:18:54.748332373",
+        "updatedAt": "2026-10-25T16:18:54.748332373",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": null,
+        "authentication": {},
+        "authenticationType": "none",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/misc/daemon-status. Returns monerod sync state, height, target height, network type and connections. Configure the host variable in Global Variables before sending.",
+        "headers": [],
+        "method": "GET",
+        "name": "check daemon status",
+        "sortPriority": 1.0,
+        "url": "${[ host ]}/api/misc/daemon-status",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
       }
     ],
     "grpcRequests": [],
