@@ -4,7 +4,7 @@ services:
   # ------------------------
   change-vol-ownership:
     image: alpine
-    command: "chown -R 1000: /mnt/wallet"
+    command: "chown -R ${CURRENT_UID}: /mnt/wallet"
     volumes:
       - ./moneropay/data/wallet:/mnt/wallet
 
@@ -12,12 +12,13 @@ services:
   # MoneroPay wallet RPC
   # ------------------------
   monero-wallet-rpc:
-    build:
-      context: ./simple-monero-wallet-rpc-docker
+    image: moneromerchant/monero-merchant-monero-wallet-rpc:v0.18.5.3
     command: >-
       --wallet-dir wallet
-      --disable-rpc-login
+      --rpc-bind-ip=0.0.0.0
+      --confirm-external-bind
       --rpc-bind-port=28081
+      --disable-rpc-login
       --daemon-host=${MONERO_DAEMON_RPC_HOSTNAME}
       --daemon-port=${MONERO_DAEMON_RPC_PORT}
     volumes:
@@ -57,7 +58,10 @@ services:
     image: registry.gitlab.com/moneropay/moneropay:v2
     environment:
       RPC_ADDRESS: http://monero-wallet-rpc:28081/json_rpc
+      RPC_USERNAME: ${MONERO_WALLET_RPC_USERNAME}
+      RPC_PASSWORD: ${MONERO_WALLET_RPC_PASSWORD}
       POSTGRESQL: postgresql://${MONEROPAY_POSTGRES_USERNAME}:${MONEROPAY_POSTGRES_PASSWORD}@moneropay-postgresql:5432/${MONEROPAY_POSTGRES_DATABASE}?sslmode=disable
+      POLL_FREQUENCY: 2s
       ZERO_CONF: "true"
     depends_on:
       monero-wallet-rpc:
@@ -92,8 +96,7 @@ services:
   # Backend API
   # ------------------------
   backend:
-    build:
-      context: ./backend
+    image: moneromerchant/monero-merchant-backend
     restart: unless-stopped
     depends_on:
       backend-db:
@@ -103,7 +106,7 @@ services:
     environment:
       ADMIN_NAME: ${ADMIN_NAME}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      PORT: ${BACKEND_PORT}
+      PORT: "8080"
 
       DB_HOST: ${DB_HOST}
       DB_USER: ${DB_USER}
