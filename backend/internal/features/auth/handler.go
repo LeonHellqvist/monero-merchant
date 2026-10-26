@@ -20,7 +20,7 @@ type AuthHandler struct {
 func NewAuthHandler(service *AuthService) *AuthHandler {
 	return &AuthHandler{
 		service: service,
-		limiter: httprate.NewRateLimiter(5, 1*time.Minute),
+		limiter: httprate.NewRateLimiter(10, 15*time.Minute),
 	}
 }
 
