@@ -30,7 +30,7 @@ Run these commands from the `backend/` directory. Copy `.env.example` to `.env` 
 cp .env.example .env
 ```
 
-Edit `.env` to set database credentials, admin credentials, JWT secrets (including required `JWT_LWS_TOKEN`), MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The `.env` file is optional: variables already set in the environment take precedence, so containers can be configured with environment variables alone.
+Edit `.env` to set database credentials, admin credentials, JWT secrets, MoneroPay URLs, and wallet RPC settings. Generate a separate value with `openssl rand -hex 32` for each secret. The `.env` file is optional: variables already set in the environment take precedence, so containers can be configured with environment variables alone.
 
 ### Installation
 
@@ -74,7 +74,7 @@ docker compose up -d
 git clone https://github.com/Monero-Merchant/monero-merchant
 cd monero-merchant/backend
 cp .env.docker.example .env
-# edit .env: replace every CHANGEME, including JWT_LWS_TOKEN
+# edit .env: replace every CHANGEME
 # use a different openssl rand -hex 32 value for each secret
 # configure reachable MoneroPay, callback, and wallet RPC URLs
 # PostgreSQL is published on host port 55432 by default
@@ -217,8 +217,8 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | GET | `/api/pos/balance` | POS | None | Sums own confirmed, untransferred sale amounts. |
 | GET | `/api/pos/export` | POS | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
 | GET (WebSocket upgrade) | `/api/pos/ws/transaction?transaction_id=<id>` | POS | None | Subscribes to updates for an owned sale. Router uses `HandleFunc`; the handler requires a valid WebSocket handshake. |
-| POST | `/api/callback/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | MoneroPay callback body; JWT signed with `JWT_MONEROPAY_SECRET`. |
-| POST | `/api/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Resolves one recent matching sale by amount. |
+| POST | `/api/callback/receive/{jwt}` | Transaction JWT in path | Ignored. | Re-checks the sale with MoneroPay; JWT signed with `JWT_MONEROPAY_SECRET`. |
+| POST | `/api/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Only when `JWT_LWS_TOKEN` is set. Matches one recent pending sale by amount only. |
 
 Replace `$ADMIN_JWT` / `$VENDOR_JWT` token placeholders with tokens returned by login. The invite request also contains a saved JWT; replace it with a fresh admin token.
 
@@ -238,7 +238,7 @@ See `.env.example` for all required variables:
 - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_PORT`: Database settings
 - `ADMIN_NAME`, `ADMIN_PASSWORD`: Required admin credentials
 - `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_MONEROPAY_SECRET`: Required JWT secrets
-- `JWT_LWS_TOKEN`: Required static token for the LWS callback endpoint
+- `JWT_LWS_TOKEN`: Optional, enables the LWS webhook for self-run monero-lws setups
 - `MONEROPAY_BASE_URL`, `MONEROPAY_CALLBACK_URL`: MoneroPay API settings
 - `MONERO_WALLET_RPC_ENDPOINT`, `MONERO_WALLET_RPC_USERNAME`, `MONERO_WALLET_RPC_PASSWORD`: Wallet RPC settings (should be same as MoneroPay)
 - `MONERO_DAEMON_RPC_ENDPOINT`, `MONERO_DAEMON_RPC_USERNAME`, `MONERO_DAEMON_RPC_PASSWORD`: Optional Monero daemon RPC for node status (`/api/misc/daemon-status`); username and password are needed when monerod runs with `--rpc-login`

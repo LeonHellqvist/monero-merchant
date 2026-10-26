@@ -88,7 +88,6 @@ fill_if_empty "ADMIN_PASSWORD" "$(gen_password)"
 fill_if_empty "JWT_SECRET" "$(gen_secret)"
 fill_if_empty "JWT_REFRESH_SECRET" "$(gen_secret)"
 fill_if_empty "JWT_MONEROPAY_SECRET" "$(gen_secret)"
-fill_if_empty "JWT_LWS_TOKEN" "$(gen_secret)"
 
 # -----------------------------------------------------------------
 # Set User ID for Docker Compose permissions

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 )
 
 type CallbackHandler struct {
@@ -22,29 +22,13 @@ func NewCallbackHandler(service *CallbackService) *CallbackHandler {
 }
 
 func (h *CallbackHandler) ReceiveTransaction(w http.ResponseWriter, r *http.Request) {
-	// Bound request time and size to avoid stuck handlers
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	r = r.WithContext(ctx)
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Printf("lws-hook: failed reading body: %v", err)
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-	log.Printf("lws-hook: payload: %s", string(body))
-
-	var req moneropay.CallbackResponse
-	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
 
 	jwtToken := chi.URLParam(r, "jwt")
 
-	if err := h.service.HandleCallback(ctx, jwtToken, req); err != nil {
+	if err := h.service.HandleCallback(ctx, jwtToken); err != nil {
 		http.Error(w, "callback handling failed", http.StatusInternalServerError)
 		return
 	}
@@ -61,6 +45,11 @@ func (h *CallbackHandler) LwsHook(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	r = r.WithContext(ctx)
 
+	if !utils.SecureCompare(chi.URLParam(r, "jwt"), h.service.config.JWTLwsToken) {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("lws-hook: failed reading body: %v", err)
@@ -76,9 +65,7 @@ func (h *CallbackHandler) LwsHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken := chi.URLParam(r, "jwt")
-
-	if err := h.service.HandleLwsHook(ctx, jwtToken, req); err != nil {
+	if err := h.service.HandleLwsHook(ctx, req); err != nil {
 		http.Error(w, err.Message, err.Code)
 		return
 	}
