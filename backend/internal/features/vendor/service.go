@@ -119,8 +119,8 @@ func (s *VendorService) completeTransfers(ctx context.Context) {
 
 			txHash, metadata, amounts, err := s.buildTransfer(ctx, destinations)
 			if err != nil {
-				log.Printf("Building transfer failed: %v", err)
-				batchErr = err
+				// Possibly too big for one tx, try a smaller batch
+				log.Printf("Building transfer of %d payouts failed: %v", len(transfers), err)
 				_ = dbTx.Rollback()
 				return
 			}
