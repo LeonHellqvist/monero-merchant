@@ -217,7 +217,7 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | GET | `/api/pos/balance` | POS | None | Sums own confirmed, untransferred sale amounts. |
 | GET | `/api/pos/export` | POS | None | Returns confirmed incoming payments as CSV inside JSON `csv_data`. |
 | GET (WebSocket upgrade) | `/api/pos/ws/transaction?transaction_id=<id>` | POS | None | Subscribes to updates for an owned sale. Router uses `HandleFunc`; the handler requires a valid WebSocket handshake. |
-| POST | `/api/callback/receive/{jwt}` | Transaction JWT in path | MoneroPay callback JSON. | MoneroPay callback body; JWT signed with `JWT_MONEROPAY_SECRET`. |
+| POST | `/api/callback/receive/{jwt}` | Transaction JWT in path | Ignored. | Re-checks the sale with MoneroPay; JWT signed with `JWT_MONEROPAY_SECRET`. |
 | POST | `/api/callback/lws-hook/{jwt}` | Static `JWT_LWS_TOKEN` in path | JSON amount/hash directly or via `tx_info`; optional confirmations/timestamp/height. | Resolves one recent matching sale by amount. |
 
 Replace `$ADMIN_JWT` / `$VENDOR_JWT` token placeholders with tokens returned by login. The invite request also contains a saved JWT; replace it with a fresh admin token.

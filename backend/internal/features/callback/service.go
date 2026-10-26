@@ -208,7 +208,7 @@ func (s *CallbackService) processTransaction(ctx context.Context, transactionID 
 	return nil
 }
 
-func (s *CallbackService) HandleCallback(ctx context.Context, jwtToken string, callback moneropay.CallbackResponse) (httpErr *models.HTTPError) {
+func (s *CallbackService) HandleCallback(ctx context.Context, jwtToken string) (httpErr *models.HTTPError) {
 	if ctx == nil {
 		return models.NewHTTPError(http.StatusInternalServerError, "context required")
 	}
@@ -241,11 +241,18 @@ func (s *CallbackService) HandleCallback(ctx context.Context, jwtToken string, c
 		return models.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 	}
 
-	httpErr = s.processTransaction(ctx, claims.TransactionID, callback.ToReceiveAddressResponse())
-	if httpErr != nil {
-		return httpErr
+	transaction, err := s.repo.FindTransactionByID(ctx, claims.TransactionID)
+	if err != nil || transaction.SubAddress == nil {
+		return models.NewHTTPError(http.StatusNotFound, "Transaction not found")
 	}
-	return nil
+
+	// The callback only says something changed, the body is not trusted
+	status, err := s.moneroPay.GetReceiveAddress(ctx, *transaction.SubAddress, &moneropay.GetReceiveAddressParams{})
+	if err != nil {
+		return models.NewHTTPError(http.StatusBadGateway, "MoneroPay request failed: "+err.Error())
+	}
+
+	return s.processTransaction(ctx, transaction.ID, *status)
 }
 
 func (s *CallbackService) HandleLwsHook(ctx context.Context, jwtToken string, payload LwsHookRequest) (httpErr *models.HTTPError) {
