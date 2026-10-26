@@ -102,9 +102,10 @@ jobs:
             fi
           }
           g=localhost:8080
-          check "root redirects" "302 http://$g/store/" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' $g/)"
+          check "admin" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/admin/)"
           check "portal" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/store/)"
           check "script" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/store/app.js)"
+          check "admin script" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/admin/app.js)"
           check "csp" "*default-src 'none'*" "$(curl -s -D - -o /dev/null $g/store/ | grep -i '^content-security-policy')"
           check "callback blocked" "404" "$(curl -s -o /dev/null -w '%{http_code}' -X POST $g/api/callback/receive/x)"
           real="$(curl -s $g/api/misc/health)"

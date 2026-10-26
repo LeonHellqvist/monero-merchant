@@ -9,7 +9,7 @@
 	encode zstd gzip
 
 	header {
-		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		Cross-Origin-Opener-Policy same-origin
@@ -17,9 +17,6 @@
 		Cache-Control no-cache
 		-Server
 	}
-
-	# Until the admin dashboard is ported
-	redir / /store/
 
 	file_server
 }
