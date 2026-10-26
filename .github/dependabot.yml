@@ -38,3 +38,16 @@ updates:
       backend-go-security:
         applies-to: security-updates
         patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /pos
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      pos-gradle:
+        patterns: ["*"]
+      pos-gradle-security:
+        applies-to: security-updates
+        patterns: ["*"]
