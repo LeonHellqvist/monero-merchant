@@ -18,6 +18,8 @@ const (
 	adminRefreshTokenTTL  = 24 * time.Hour
 )
 
+var ErrInvalidCurrentPassword = errors.New("invalid current password")
+
 type AuthService struct {
 	repo   AuthRepository
 	config *config.Config
@@ -113,7 +115,7 @@ func (s *AuthService) UpdateVendorPassword(ctx context.Context, vendorID uint, c
 		return "", "", errors.New("vendor not found")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(vendor.PasswordHash), []byte(currentPassword)); err != nil {
-		return "", "", errors.New("invalid current password")
+		return "", "", ErrInvalidCurrentPassword
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -144,7 +146,7 @@ func (s *AuthService) UpdatePosPassword(ctx context.Context, posID uint, vendorI
 		return "", "", errors.New("pos not found")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(pos.PasswordHash), []byte(currentPassword)); err != nil {
-		return "", "", errors.New("invalid current password")
+		return "", "", ErrInvalidCurrentPassword
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {

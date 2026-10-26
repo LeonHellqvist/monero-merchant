@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -225,18 +226,14 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 			// Check if the vendor owns the POS
 			pos, err := h.service.repo.FindPosByID(ctx, *req.PosID)
-			if err != nil {
+			if err != nil || pos.VendorID != *vendorIDPtr {
 				http.Error(w, "POS not found", http.StatusNotFound)
-				return
-			}
-			if pos.VendorID != *vendorIDPtr {
-				http.Error(w, "Unauthorized to update this POS password", http.StatusUnauthorized)
 				return
 			}
 
 			accessToken, refreshToken, err := h.service.UpdatePosPasswordFromVendor(ctx, *req.PosID, *vendorIDPtr, req.NewPassword)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				http.Error(w, "Failed to update password", http.StatusInternalServerError)
 				return
 			}
 			resp := loginResponse{
@@ -257,7 +254,11 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 			}
 			accessToken, refreshToken, err := h.service.UpdateVendorPassword(ctx, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				if errors.Is(err, ErrInvalidCurrentPassword) {
+					http.Error(w, err.Error(), http.StatusForbidden)
+					return
+				}
+				http.Error(w, "Failed to update password", http.StatusInternalServerError)
 				return
 			}
 			resp := loginResponse{
@@ -279,7 +280,11 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		}
 		accessToken, refreshToken, err := h.service.UpdatePosPassword(ctx, *posIDPtr, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			if errors.Is(err, ErrInvalidCurrentPassword) {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			http.Error(w, "Failed to update password", http.StatusInternalServerError)
 			return
 		}
 		resp := loginResponse{
@@ -291,6 +296,6 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	http.Error(w, "Forbidden", http.StatusForbidden)
 	io.Copy(io.Discard, r.Body)
 }
