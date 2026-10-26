@@ -17,6 +17,9 @@ type Client struct {
 	Username string
 	Password string
 	client   *http.Client
+	// monerod and wallet-rpc track digest nonce counts per connection, so calls
+	// go one at a time over a single connection
+	slot chan struct{}
 }
 
 // NewClient creates a JSON-RPC client for monerod or monero-wallet-rpc.
@@ -24,7 +27,9 @@ type Client struct {
 func NewClient(endpoint, username, password string) *Client {
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	if username != "" || password != "" {
-		httpClient.Transport = &digest.Transport{Username: username, Password: password}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.MaxConnsPerHost = 1
+		httpClient.Transport = &digest.Transport{Username: username, Password: password, Transport: transport}
 	}
 
 	return &Client{
@@ -32,6 +37,7 @@ func NewClient(endpoint, username, password string) *Client {
 		Username: username,
 		Password: password,
 		client:   httpClient,
+		slot:     make(chan struct{}, 1),
 	}
 }
 
@@ -83,6 +89,12 @@ func (c *Client) Call(ctx context.Context, method string, params interface{}, re
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	select {
+	case c.slot <- struct{}{}:
+		defer func() { <-c.slot }()
+	case <-ctx.Done():
+		return fmt.Errorf("RPC %s request failed: %w", method, ctx.Err())
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("RPC %s request failed: %w", method, err)
