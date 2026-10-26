@@ -76,7 +76,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	adminService := admin.NewAdminService(adminRepository, cfg, rpcClient, vendorService)
 	authService := auth.NewAuthService(authRepository, cfg)
 	posService := pos.NewPosService(posRepository, cfg, moneroPayClient)
-	posService.StartPendingCleanup(ctx, 15*time.Minute, 2*time.Hour)
+	posService.StartPendingCleanup(ctx, 15*time.Minute, pos.PendingSaleTTL)
 	callbackService := callback.NewCallbackService(callbackRepository, cfg, moneroPayClient)
 	callbackService.StartConfirmationChecker(ctx, 2*time.Second) // Check for confirmations every 2 seconds
 	miscService := misc.NewMiscService(miscRepository, cfg, moneroPayClient, daemonRPC)

@@ -22,6 +22,9 @@ type PosService struct {
 
 const moneroAtomicUnitsPerXMR int64 = 1_000_000_000_000
 
+// How long an unpaid sale and its callback URL stay valid
+const PendingSaleTTL = 2 * time.Hour
+
 var ErrNoConfirmedTransactions = errors.New("no confirmed transactions in DB")
 
 func NewPosService(repo PosRepository, cfg *config.Config, moneroPay *moneropay.MoneroPayAPIClient) *PosService {
@@ -72,7 +75,7 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 	// Create a jwt token for the transaction which contains the transaction ID
 	moneroPayTokenJWT := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"transaction_id": transactionDB.ID,
-		"exp":            time.Now().Add(time.Hour * 6).Unix(),
+		"exp":            time.Now().Add(PendingSaleTTL).Unix(),
 	})
 
 	accessToken, err := moneroPayTokenJWT.SignedString([]byte(s.config.JWTMoneroPaySecret))
