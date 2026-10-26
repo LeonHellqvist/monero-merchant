@@ -252,6 +252,9 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid vendor_id claim", http.StatusUnauthorized)
 				return
 			}
+			if h.limiter.RespondOnLimit(w, r, fmt.Sprintf("vendor-password:%d", *vendorIDPtr)) {
+				return
+			}
 			accessToken, refreshToken, err := h.service.UpdateVendorPassword(ctx, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -269,6 +272,9 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		// POS can only update its own password
 		if posIDPtr == nil || vendorIDPtr == nil {
 			http.Error(w, "Invalid pos_id claim", http.StatusUnauthorized)
+			return
+		}
+		if h.limiter.RespondOnLimit(w, r, fmt.Sprintf("pos-password:%d", *posIDPtr)) {
 			return
 		}
 		accessToken, refreshToken, err := h.service.UpdatePosPassword(ctx, *posIDPtr, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
