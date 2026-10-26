@@ -298,7 +298,7 @@ func (s *AuthService) generateAdminToken() (accessToken string, refreshToken str
 		"vendor_id":        0,
 		"role":             "admin",
 		"password_version": 0,
-		"exp":              time.Now().Add(time.Minute * 30).Unix(),
+		"exp":              time.Now().Add(time.Minute * 5).Unix(),
 	})
 
 	refreshTokenJWT := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
