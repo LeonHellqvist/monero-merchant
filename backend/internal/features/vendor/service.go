@@ -326,7 +326,12 @@ func (s *VendorService) DeleteVendor(ctx context.Context, vendorID uint) (httpEr
 		return models.NewHTTPError(http.StatusNotFound, "vendor not found")
 	}
 
-	if vendor.Balance != 0 {
+	balance, err := s.repo.GetBalance(ctx, vendorID)
+	if err != nil {
+		return models.NewHTTPError(http.StatusInternalServerError, "error retrieving balance: "+err.Error())
+	}
+
+	if balance != 0 {
 		return models.NewHTTPError(http.StatusBadRequest, "vendor balance must be 0 to delete vendor")
 	}
 
