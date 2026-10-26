@@ -247,7 +247,7 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			accessToken, refreshToken, err := h.service.UpdatePosPasswordFromVendor(ctx, *vendorIDPtr, *req.PosID, req.NewPassword)
+			accessToken, refreshToken, err := h.service.UpdatePosPasswordFromVendor(ctx, *req.PosID, *vendorIDPtr, req.NewPassword)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
