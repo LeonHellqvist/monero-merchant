@@ -129,7 +129,6 @@ func LoadConfig() (*Config, error) {
 		config.JWTMoneroPaySecret == "" ||
 		config.MoneroPayBaseURL == "" ||
 		config.MoneroPayCallbackURL == "" ||
-		config.JWTLwsToken == "" ||
 		config.MoneroWalletRPCEndpoint == "" {
 		return nil, fmt.Errorf("missing required environment variables")
 	}

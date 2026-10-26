@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 )
 
 type CallbackHandler struct {
@@ -44,6 +45,11 @@ func (h *CallbackHandler) LwsHook(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	r = r.WithContext(ctx)
 
+	if !utils.SecureCompare(chi.URLParam(r, "jwt"), h.service.config.JWTLwsToken) {
+		http.Error(w, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Printf("lws-hook: failed reading body: %v", err)
@@ -59,9 +65,7 @@ func (h *CallbackHandler) LwsHook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken := chi.URLParam(r, "jwt")
-
-	if err := h.service.HandleLwsHook(ctx, jwtToken, req); err != nil {
+	if err := h.service.HandleLwsHook(ctx, req); err != nil {
 		http.Error(w, err.Message, err.Code)
 		return
 	}

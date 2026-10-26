@@ -255,7 +255,7 @@ func (s *CallbackService) HandleCallback(ctx context.Context, jwtToken string) (
 	return s.processTransaction(ctx, transaction.ID, *status)
 }
 
-func (s *CallbackService) HandleLwsHook(ctx context.Context, jwtToken string, payload LwsHookRequest) (httpErr *models.HTTPError) {
+func (s *CallbackService) HandleLwsHook(ctx context.Context, payload LwsHookRequest) (httpErr *models.HTTPError) {
 	if ctx == nil {
 		return models.NewHTTPError(http.StatusInternalServerError, "context required")
 	}
@@ -286,11 +286,6 @@ func (s *CallbackService) HandleLwsHook(ctx context.Context, jwtToken string, pa
 	if time.Since(eventTimestamp) > time.Minute {
 		log.Printf("lws-hook: stale payload ts=%s now=%s", eventTimestamp, time.Now().UTC())
 		return models.NewHTTPError(http.StatusUnauthorized, "Stale LWS payload")
-	}
-
-	if jwtToken != s.config.JWTLwsToken {
-		log.Printf("lws-hook: invalid token")
-		return models.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 	}
 
 	candidates, err := s.repo.FindRecentPendingTransactionsByAmount(ctx, amount, time.Now().Add(-1*time.Minute))

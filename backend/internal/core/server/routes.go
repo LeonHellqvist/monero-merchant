@@ -105,7 +105,9 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 
 			// Callback routes
 			r.Post("/callback/receive/{jwt}", callbackHandler.ReceiveTransaction)
-			r.Post("/callback/lws-hook/{jwt}", callbackHandler.LwsHook)
+			if cfg.JWTLwsToken != "" {
+				r.Post("/callback/lws-hook/{jwt}", callbackHandler.LwsHook)
+			}
 
 			// Miscellaneous routes
 			r.Get("/misc/health", miscHandler.GetHealth)
