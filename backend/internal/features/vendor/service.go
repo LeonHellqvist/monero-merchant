@@ -2,6 +2,7 @@ package vendor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -283,6 +284,10 @@ func (s *VendorService) CreateVendor(ctx context.Context, name string, email str
 		return 0, models.NewHTTPError(http.StatusBadRequest, "invite code already used")
 	}
 
+	if time.Now().After(invite.ValidUntil) {
+		return 0, models.NewHTTPError(http.StatusBadRequest, "invite code expired")
+	}
+
 	if invite.ForcedName != nil && *invite.ForcedName != name {
 		return 0, models.NewHTTPError(http.StatusBadRequest, "invite code is for a different name")
 	}
@@ -308,14 +313,12 @@ func (s *VendorService) CreateVendor(ctx context.Context, name string, email str
 		MoneroSubaddress: moneroSubaddress,
 	}
 
-	err = s.repo.CreateVendor(ctx, vendor)
+	err = s.repo.CreateVendorWithInvite(ctx, vendor, invite.ID)
+	if errors.Is(err, ErrInviteUsed) {
+		return 0, models.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
 	if err != nil {
 		return 0, models.NewHTTPError(http.StatusInternalServerError, "error creating vendor: "+err.Error())
-	}
-
-	err = s.repo.SetInviteToUsed(ctx, invite.ID)
-	if err != nil {
-		return 0, models.NewHTTPError(http.StatusInternalServerError, "error setting invite to used: "+err.Error())
 	}
 
 	return vendor.ID, nil

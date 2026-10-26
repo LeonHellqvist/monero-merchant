@@ -73,6 +73,11 @@ func (h *AdminHandler) CreateInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.ValidUntil <= time.Now().Unix() {
+		http.Error(w, "valid_until must be in the future", http.StatusBadRequest)
+		return
+	}
+
 	inviteCode, err := h.service.CreateInvite(ctx, time.Unix(req.ValidUntil, 0), req.ForcedName)
 
 	if err != nil {
