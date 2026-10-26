@@ -170,7 +170,7 @@ func (s *CallbackService) processTransaction(ctx context.Context, transactionID 
 	// Calculate if transaction is accepted
 	allAccepted := true
 	for _, subTx := range transaction.SubTransactions {
-		if subTx.Confirmations < transaction.RequiredConfirmations {
+		if subTx.Confirmations < transaction.RequiredConfirmations || (subTx.DoubleSpendSeen && subTx.Confirmations == 0) {
 			allAccepted = false
 			break
 		}

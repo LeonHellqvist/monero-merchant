@@ -58,6 +58,11 @@ func (h *PosHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Amount <= 0 {
+		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
+		return
+	}
+
 	if req.RequiredConfirmations > 10 || req.RequiredConfirmations < 0 {
 		http.Error(w, "Required confirmations must be between 0 and 10", http.StatusBadRequest)
 		return
