@@ -1,23 +1,23 @@
-name: Frontend CI
+name: Web CI
 
 on:
   pull_request:
     paths:
       - "frontend/**"
       - "gateway/**"
-      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/web-ci.yml"
   push:
     branches: [main]
     paths:
       - "frontend/**"
       - "gateway/**"
-      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/web-ci.yml"
   workflow_call:
 
 permissions: {}
 
 concurrency:
-  group: frontend-ci-${{ github.ref }}
+  group: web-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

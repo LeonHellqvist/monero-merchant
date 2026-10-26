@@ -16,7 +16,7 @@ jobs:
     name: Checks
     permissions:
       contents: read
-    uses: ./.github/workflows/frontend-ci.yml # zizmor: ignore[self-repository]
+    uses: ./.github/workflows/web-ci.yml # zizmor: ignore[self-repository]
 
   image:
     name: Publish image
