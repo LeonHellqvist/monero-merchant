@@ -228,7 +228,10 @@ func (r *vendorRepository) GetUnrelayedTransfers(ctx context.Context) ([]*models
 func (r *vendorRepository) MarkTransfersCompleted(ctx context.Context, txHash string) error {
 	return r.db.WithContext(ctx).Model(&models.Transfer{}).
 		Where("tx_hash = ?", txHash).
-		Update("completed", true).Error
+		Updates(map[string]interface{}{
+			"completed":   true,
+			"tx_metadata": nil,
+		}).Error
 }
 
 func (r *vendorRepository) GetPosDevicesByVendorID(ctx context.Context, vendorID uint) ([]*models.Pos, error) {

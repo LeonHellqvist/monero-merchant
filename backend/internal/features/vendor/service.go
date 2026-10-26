@@ -229,9 +229,14 @@ func (s *VendorService) relayPendingTransfers(ctx context.Context) bool {
 		}
 		done[txHash] = true
 
-		// The wallet knows the tx if an earlier relay went through
-		err := s.rpcClient.Call(ctx, "get_transfer_by_txid", map[string]any{"txid": txHash}, nil)
-		if err == nil {
+		// The wallet knows the tx if an earlier relay went through, unless the daemon dropped it
+		var known struct {
+			Transfer struct {
+				Type string `json:"type"`
+			} `json:"transfer"`
+		}
+		err := s.rpcClient.Call(ctx, "get_transfer_by_txid", map[string]any{"txid": txHash}, &known)
+		if err == nil && known.Transfer.Type != "failed" {
 			err = s.repo.MarkTransfersCompleted(ctx, txHash)
 		} else {
 			err = s.relayTransfer(ctx, txHash, *transfer.TxMetadata)

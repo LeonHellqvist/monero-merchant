@@ -12,7 +12,7 @@ type Transfer struct {
 	AmountTransferred *int64         `gorm:"default:null"` // Amount that has been transferred (amount - fee)
 	Address           string         `gorm:"not null;type:text"`
 	TxHash            *string        `gorm:"type:text"`
-	TxMetadata        *string        `gorm:"type:text"` // Signed tx, kept until it is relayed
+	TxMetadata        *string        `gorm:"type:text"` // Signed tx, cleared once relayed
 	Transactions      []*Transaction `gorm:"foreignKey:TransferID"`
 	Completed         bool           `gorm:"not null;default:false"` // Indicates if the transfer is completed
 }
