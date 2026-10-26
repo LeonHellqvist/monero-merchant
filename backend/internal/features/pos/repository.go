@@ -101,7 +101,9 @@ func (r *posRepository) DeletePendingTransactionsBefore(ctx context.Context, cut
 	var ids []uint
 	if err := tx.
 		Model(&models.Transaction{}).
-		Where("confirmed = ? AND created_at < ?", false, cutoff).
+		Where("confirmed = ? AND accepted = ? AND created_at < ?", false, false, cutoff).
+		// Keep sales that have seen a payment, they are still confirming
+		Where("NOT EXISTS (SELECT 1 FROM sub_transactions WHERE sub_transactions.transaction_id = transactions.id AND sub_transactions.deleted_at IS NULL)").
 		Pluck("id", &ids).Error; err != nil {
 		tx.Rollback()
 		return 0, err
@@ -112,11 +114,6 @@ func (r *posRepository) DeletePendingTransactionsBefore(ctx context.Context, cut
 			return 0, err
 		}
 		return 0, nil
-	}
-
-	if err := tx.Where("transaction_id IN ?", ids).Delete(&models.SubTransaction{}).Error; err != nil {
-		tx.Rollback()
-		return 0, err
 	}
 
 	res := tx.Where("id IN ?", ids).Delete(&models.Transaction{})
