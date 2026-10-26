@@ -1,102 +1,129 @@
 services:
   app_proxy:
-    container_name: monero_merchant_app_proxy
     environment:
-      APP_HOST: monero_merchant_backend
+      APP_HOST: monero-merchant-app_gateway_1
       APP_PORT: 8080
-      PROXY_AUTH_ADD: "false"
-    image: getumbrel/app-proxy:1.7.0
+      # Vendors and POS devices can't log in to Umbrel. The admin dashboard and
+      # admin API stay behind Umbrel login.
+      PROXY_AUTH_WHITELIST: "/,/vendor/*,/logo.png,/api/auth/*,/api/vendor/*,/api/pos/*,/api/rates,/api/rates/*,/api/misc/health"
+      PROXY_AUTH_BLACKLIST: "/api/auth/login-admin"
+
+  gateway:
+    image: ghcr.io/monero-merchant/monero-merchant-gateway:2.2.0-rc.2@sha256:d67e95fe221acb642216653892632b68ab9de8feb7accf4f6abe69eae63ca3d9
+    user: "1000:1000"
     restart: on-failure
-    volumes:
-      - "${APP_DATA_DIR}:/data"
-    networks:
-      - default
-      - umbrel_main_network
+    depends_on:
+      - backend
+      - frontend
+    environment:
+      SITE_ADDRESS: ":8080"
+      BACKEND_UPSTREAM: monero-merchant-app_backend_1:8080
+      FRONTEND_UPSTREAM: monero-merchant-app_frontend_1:8080
+      # Umbrel's proxy connects from the app network
+      TRUSTED_PROXIES: ${NETWORK_IP}/16
+      # Nothing is stored; Caddy just wants writable dirs
+      XDG_DATA_HOME: /tmp
+      XDG_CONFIG_HOME: /tmp
+
+  frontend:
+    image: ghcr.io/monero-merchant/monero-merchant-frontend:2.2.0-rc.2@sha256:62b333f3c540bfb4a07effd1eeea7d318c74355b8a706bb426b83f5e62b0ff6a
+    restart: on-failure
 
   backend:
-    container_name: monero_merchant_backend
-    env_file:
-      - ${APP_DATA_DIR}/.env
-    environment:
-      DB_HOST: db
-      DB_NAME: moneromerchant
-      DB_USER: moneromerchant
-      DB_PORT: "5432"
-      PORT: "8080"
-      SECRETS_FILE: ${APP_DATA_DIR}/.secrets
-      ADMIN_NAME: admin
-    image: sirjamzalot/monero-merchant-backend:v2.1.0-umbrel37
+    image: ghcr.io/monero-merchant/monero-merchant-backend:2.2.0-rc.2@sha256:3814e22f011bd5581948a762e81338d13a849fdf42e92e190026011afa08c7d4
     restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}:/data
     depends_on:
       db:
         condition: service_healthy
       wallet-rpc:
-        condition: service_started
-      moneropay:
-        condition: service_started
-    networks:
-      - default
-      - umbrel_main_network
+        condition: service_healthy
+    environment:
+      ADMIN_NAME: admin
+      ADMIN_PASSWORD: ${APP_PASSWORD}
+      PORT: "8080"
+
+      DB_HOST: monero-merchant-app_db_1
+      DB_USER: moneromerchant
+      DB_PASSWORD: ${APP_MONERO_MERCHANT_APP_DB_PASSWORD}
+      DB_NAME: moneromerchant
+      DB_PORT: "5432"
+
+      JWT_SECRET: ${APP_MONERO_MERCHANT_APP_JWT_SECRET}
+      JWT_REFRESH_SECRET: ${APP_MONERO_MERCHANT_APP_JWT_REFRESH_SECRET}
+      JWT_MONEROPAY_SECRET: ${APP_MONERO_MERCHANT_APP_JWT_MONEROPAY_SECRET}
+
+      MONEROPAY_BASE_URL: http://monero-merchant-app_moneropay_1:5000
+      MONEROPAY_CALLBACK_URL: http://monero-merchant-app_backend_1:8080/api/callback/
+
+      MONERO_DAEMON_RPC_ENDPOINT: http://${APP_MONERO_NODE_IP}:${APP_MONERO_RPC_PORT}/json_rpc
+      MONERO_DAEMON_RPC_USERNAME: ${APP_MONERO_RPC_USER}
+      MONERO_DAEMON_RPC_PASSWORD: ${APP_MONERO_RPC_PASS}
+      MONERO_WALLET_RPC_ENDPOINT: http://monero-merchant-app_wallet-rpc_1:28081/json_rpc
+      MONERO_WALLET_RPC_USERNAME: moneromerchant
+      MONERO_WALLET_RPC_PASSWORD: ${APP_MONERO_MERCHANT_APP_WALLET_RPC_PASSWORD}
+
+      # The wallet MoneroPay creates on first start
+      WALLET_NAME: wallet
+      WALLET_PASSWORD: ""
+      WALLET_AUTO_REFRESH_PERIOD: "2"
+
+      # Set by the gateway
+      TRUSTED_PROXY_HEADER: X-Real-IP
 
   db:
-    container_name: monero_merchant_db
+    image: postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    user: "1000:1000"
+    restart: on-failure
     environment:
       POSTGRES_DB: moneromerchant
       POSTGRES_USER: moneromerchant
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    image: postgres:16-alpine
-    restart: on-failure
+      POSTGRES_PASSWORD: ${APP_MONERO_MERCHANT_APP_DB_PASSWORD}
     volumes:
-      - ${APP_DATA_DIR}/postgres:/var/lib/postgresql/data
+      - ${APP_DATA_DIR}/data/db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U moneromerchant -d moneromerchant"]
       interval: 5s
       timeout: 3s
       retries: 20
-    networks:
-      - default
-      - umbrel_main_network
 
   wallet-rpc:
-    container_name: monero_merchant_wallet_rpc
-    env_file:
-      - ${APP_DATA_DIR}/.env
-    image: sethsimmons/simple-monero-wallet-rpc:latest
-    user: "1000:1000"
-    restart: on-failure
-    volumes:
-      - ${APP_DATA_DIR}/wallet:/wallet
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - "exec monero-wallet-rpc --wallet-dir=/wallet --daemon-address=$${MONERO_DAEMON_HOST}:$${MONERO_DAEMON_PORT} $${MONERO_WALLET_RPC_DAEMON_LOGIN} --rpc-bind-port=18082 --rpc-bind-ip=0.0.0.0 --confirm-external-bind --disable-rpc-login --trusted-daemon --log-level=1"
-    networks:
-      - default
-      - umbrel_main_network
-
-  moneropay:
-    container_name: monero_merchant_moneropay
-    image: registry.gitlab.com/moneropay/moneropay:v2
+    image: ghcr.io/monero-merchant/monero-merchant-wallet-rpc:0.18.5.4-1@sha256:65b7c2d978c81440a04c4d0632720322c960e1ae10ece07eba73353b8b5ae159
     restart: on-failure
     environment:
-      RPC_ADDRESS: http://wallet-rpc:18082/json_rpc
-      SQLITE: file:/data/moneropay.db
-      ZERO_CONF: "true"
+      MONERO_WALLET_RPC_USERNAME: moneromerchant
+      MONERO_WALLET_RPC_PASSWORD: ${APP_MONERO_MERCHANT_APP_WALLET_RPC_PASSWORD}
+      MONERO_DAEMON_RPC_USERNAME: ${APP_MONERO_RPC_USER}
+      MONERO_DAEMON_RPC_PASSWORD: ${APP_MONERO_RPC_PASS}
+    command: >-
+      --wallet-dir wallet
+      --rpc-bind-ip=0.0.0.0
+      --confirm-external-bind
+      --rpc-bind-port=28081
+      --daemon-host=${APP_MONERO_NODE_IP}
+      --daemon-port=${APP_MONERO_RPC_PORT}
+      --trusted-daemon
+      ${APP_MONERO_MERCHANT_APP_NETWORK_FLAG}
     volumes:
-      - ${APP_DATA_DIR}/moneropay:/data
+      - ${APP_DATA_DIR}/data/wallet:/home/monero/wallet
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --digest -u \"$${MONERO_WALLET_RPC_USERNAME}:$${MONERO_WALLET_RPC_PASSWORD}\" localhost:28081/json_rpc -d '{\"jsonrpc\":\"2.0\",\"id\":\"0\",\"method\":\"get_version\"}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  moneropay:
+    image: registry.gitlab.com/moneropay/moneropay:v2.8.1@sha256:e480b174755c3a2c33ba11cbad628ed9f7e6935c3081f954fc9b5e7d7c21ddd2
+    user: "1000:1000"
+    restart: on-failure
     depends_on:
       wallet-rpc:
-        condition: service_started
-    networks:
-      - default
-      - umbrel_main_network
-
-networks:
-  default:
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.99.20.0/24
-  umbrel_main_network:
-    external: true
+        condition: service_healthy
+    environment:
+      RPC_ADDRESS: http://monero-merchant-app_wallet-rpc_1:28081/json_rpc
+      RPC_USERNAME: moneromerchant
+      RPC_PASSWORD: ${APP_MONERO_MERCHANT_APP_WALLET_RPC_PASSWORD}
+      SQLITE: file:/data/moneropay.db
+      POLL_FREQUENCY: 2s
+      ZERO_CONF: "true"
+    volumes:
+      - ${APP_DATA_DIR}/data/moneropay:/data
