@@ -16,6 +16,7 @@ import (
 type wsClient struct {
 	conn          *websocket.Conn
 	transactionID uint
+	mu            sync.Mutex // gorilla panics on concurrent writes
 }
 
 type wsHub struct {
@@ -159,38 +160,35 @@ func (h *PosHandler) TransactionWS(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// ping to detect dead peers
-	ticker := time.NewTicker(pingPeriod)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-ticker.C:
-			_ = conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	go func() {
+		ticker := time.NewTicker(pingPeriod)
+		defer ticker.Stop()
+		for range ticker.C {
 			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
 				return
 			}
-		default:
-			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
-			if _, _, err := conn.ReadMessage(); err != nil {
-				return
-			}
+		}
+	}()
+
+	for {
+		if _, _, err := conn.ReadMessage(); err != nil {
+			return
 		}
 	}
-
 }
 
 // Call this when a transaction is updated
 func NotifyTransactionUpdate(transactionID uint, update interface{}) {
 	hub.mu.Lock()
-	clients := hub.clients[transactionID]
+	clients := append([]*wsClient(nil), hub.clients[transactionID]...)
 	hub.mu.Unlock()
 
 	for _, client := range clients {
-		// prevent a slow client from blocking others
+		client.mu.Lock()
 		_ = client.conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		if err := client.conn.WriteJSON(update); err != nil {
+		err := client.conn.WriteJSON(update)
+		client.mu.Unlock()
+		if err != nil {
 			_ = client.conn.Close()
 		}
 	}

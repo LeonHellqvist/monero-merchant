@@ -25,7 +25,6 @@ func AuthMiddleware(cfg *config.Config, repo auth.AuthRepository) func(next http
 
 			authCtx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 			defer cancel()
-			r = r.WithContext(authCtx)
 
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 			if tokenString == authHeader {
