@@ -160,7 +160,7 @@ Output APK: `app/build/outputs/apk/debug/app-debug.apk`
 
 To update an existing install, run `git pull` and then `make install` again. It keeps your `.env` and only fills in values that are missing.
 
-The vendor portal is at `http://<server>:8080/store/`, and POS devices connect to `http://<server>:8080`. For HTTPS, point a domain at the server, set `SITE_ADDRESS=<domain>`, `HTTP_PORT=80` and `HTTPS_PORT=443` in `.env`, and run `make restart`.
+The admin dashboard is at `http://<server>:8080/admin/` (log in with `ADMIN_NAME` and `ADMIN_PASSWORD` from `.env`), the vendor portal at `/store/`, and POS devices connect to `http://<server>:8080`. For HTTPS, point a domain at the server, set `SITE_ADDRESS=<domain>`, `HTTP_PORT=80` and `HTTPS_PORT=443` in `.env`, and run `make restart`.
 
 ### Using your own reverse proxy
 
@@ -170,6 +170,20 @@ The `gateway` service is a stock Caddy with [gateway/Caddyfile](gateway/Caddyfil
 - everything else to `frontend:8080`
 
 The proxy must overwrite `X-Real-IP` with the client address, and the backend must only be reachable through it. Otherwise clients can fake their IP and get around the rate limits.
+
+### Wallet
+
+MoneroPay creates the server wallet in `moneropay/data/wallet/` on first start. It has no password, so keep that folder private, and back up the seed under Settings in the admin dashboard.
+
+To restore the same wallet from its seed:
+
+```
+docker compose stop moneropay monero-wallet-rpc
+sudo mv moneropay/data/wallet moneropay/data/wallet.old
+docker compose up -d monero-wallet-rpc
+```
+
+Then use "Restore from Seed" on the dashboard's home page, and run `docker compose up -d`. Restoring a different wallet this way breaks pending sales, because MoneroPay's database still refers to the old one.
 
 ### Start / Restart / Rebuild / Stop
 
