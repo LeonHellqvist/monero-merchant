@@ -18,9 +18,17 @@ function clipCopy(text) {
 // ============ Security: HTML Escaping ============
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// Errors come as JSON {error} / {message} or as plain text
+async function errorMessage(res, fallback) {
+  const text = await res.text().catch(() => '');
+  try {
+    const data = JSON.parse(text);
+    if (data.error || data.message) return data.error || data.message;
+  } catch (e) {}
+  return text.trim() || fallback;
 }
 
 // ============ State ============
@@ -132,8 +140,7 @@ async function login(username, password) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Login failed' }));
-    throw new Error(err.error || 'Invalid credentials');
+    throw new Error(await errorMessage(res, 'Invalid credentials'));
   }
 
   const data = await res.json();
@@ -158,8 +165,7 @@ async function signup(username, email, password, address, inviteCode) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Signup failed' }));
-    throw new Error(err.message || err.error || 'Could not create account');
+    throw new Error(await errorMessage(res, 'Could not create account'));
   }
 
   await login(username, password);
@@ -196,8 +202,11 @@ async function fetchPosDevices() {
 
 async function initiateWithdrawal() {
   const res = await api('/vendor/transfer-balance', { method: 'POST' });
+  if (!res.ok) {
+    return { ok: false, error: await errorMessage(res, 'Failed to initiate withdrawal') };
+  }
   const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data };
+  return { ok: true, message: data.message };
 }
 
 async function createPOS(name, password) {
@@ -207,8 +216,7 @@ async function createPOS(name, password) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Failed to create POS' }));
-    throw new Error(err.error || 'Could not create POS device');
+    throw new Error(await errorMessage(res, 'Could not create POS device'));
   }
 
   return await res.json();
@@ -228,8 +236,7 @@ async function exportCSV() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } else {
-    const data = await res.json().catch(() => ({}));
-    alert(data.error || 'No transactions to export');
+    alert(await errorMessage(res, 'No transactions to export'));
   }
 }
 
@@ -453,12 +460,12 @@ async function renderDashboard(container, headerActions) {
   withdrawBtn.addEventListener('click', async () => {
     withdrawBtn.disabled = true;
     withdrawBtn.textContent = 'Processing...';
-    const { ok, data } = await initiateWithdrawal();
+    const { ok, message, error } = await initiateWithdrawal();
     if (ok) {
-      alert(data.message || 'Withdrawal initiated successfully!');
+      alert(message || 'Withdrawal initiated successfully!');
       navigateTo('dashboard');
     } else {
-      alert(data.error || 'Failed to initiate withdrawal');
+      alert(error);
       withdrawBtn.disabled = false;
       withdrawBtn.textContent = 'Initiate Withdrawal';
     }
@@ -759,12 +766,16 @@ function renderSettings(container, headerActions) {
       });
 
       if (res.ok) {
+        // The old tokens are invalid after a password change
+        const data = await res.json();
+        auth.accessToken = data.access_token;
+        auth.refreshToken = data.refresh_token;
+        saveAuth();
         alert('Password updated successfully');
         $('current-password').value = '';
         $('new-password').value = '';
       } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to update password');
+        alert(await errorMessage(res, 'Failed to update password'));
       }
     } catch (e) {
       alert('Error updating password');
@@ -810,7 +821,7 @@ async function confirmDeleteAccount() {
           alert('Account deleted');
           logout();
         } else {
-          alert('Failed to delete account');
+          alert(await errorMessage(res, 'Failed to delete account'));
         }
       } catch (e) {
         alert('Error deleting account');
