@@ -1,511 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>XMRpos Vendor Dashboard</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    :root {
-      --bg-primary: #1a1b26;
-      --bg-secondary: #24283b;
-      --bg-tertiary: #414868;
-      --text-primary: #c0caf5;
-      --text-secondary: #a9b1d6;
-      --text-muted: #565f89;
-      --accent: #7aa2f7;
-      --accent-hover: #89b4fa;
-      --success: #9ece6a;
-      --warning: #e0af68;
-      --error: #f7768e;
-      --border: #414868;
-      --monero-orange: #ff6600;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      margin: 0;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      min-height: 100vh;
-    }
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { color: var(--accent-hover); }
-
-    /* Layout */
-    .app { display: flex; min-height: 100vh; }
-    .sidebar {
-      width: 240px;
-      background: var(--bg-secondary);
-      border-right: 1px solid var(--border);
-      padding: 20px 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-header {
-      padding: 0 20px 20px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
-    }
-    .sidebar-header h1 {
-      font-size: 20px;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .sidebar-header h1 .logo {
-      width: 32px;
-      height: 32px;
-      background: var(--monero-orange);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
-      color: #fff;
-    }
-    .nav { flex: 1; }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 20px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.2s;
-      border-left: 3px solid transparent;
-    }
-    .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-    .nav-item.active {
-      background: rgba(122, 162, 247, 0.1);
-      color: var(--accent);
-      border-left-color: var(--accent);
-    }
-    .nav-item svg { width: 20px; height: 20px; }
-    .sidebar-footer {
-      padding: 20px;
-      border-top: 1px solid var(--border);
-      margin-top: auto;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .user-avatar {
-      width: 36px;
-      height: 36px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      color: var(--bg-primary);
-    }
-    .user-details { flex: 1; min-width: 0; }
-    .user-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-role { font-size: 12px; color: var(--text-muted); }
-
-    /* Main content */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .header {
-      padding: 20px 30px;
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .header h2 { margin: 0; font-size: 24px; }
-    .content { flex: 1; padding: 30px; overflow-y: auto; }
-
-    /* Cards */
-    .card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-    }
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .card-title { font-size: 16px; font-weight: 600; margin: 0; }
-
-    /* Stats grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .stat-card {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-    }
-    .stat-label { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
-    .stat-value { font-size: 28px; font-weight: 700; }
-    .stat-value.balance { color: var(--monero-orange); }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      font-size: 14px;
-      font-weight: 500;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-primary { background: var(--accent); color: var(--bg-primary); }
-    .btn-primary:hover { background: var(--accent-hover); }
-    .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); }
-    .btn-secondary:hover { background: #525a7a; }
-    .btn-danger { background: var(--error); color: #fff; }
-    .btn-danger:hover { opacity: 0.9; }
-    .btn-sm { padding: 6px 12px; font-size: 13px; }
-
-    /* Tables */
-    .table-wrapper { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { font-weight: 600; color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:hover { background: rgba(122, 162, 247, 0.05); }
-    .status-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-    .status-pending { background: rgba(224, 175, 104, 0.2); color: var(--warning); }
-    .status-confirmed { background: rgba(158, 206, 106, 0.2); color: var(--success); }
-    .status-transferred { background: rgba(122, 162, 247, 0.2); color: var(--accent); }
-
-    /* Forms */
-    .form-group { margin-bottom: 20px; }
-    .form-label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 14px; }
-    .form-input {
-      width: 100%;
-      padding: 12px 16px;
-      font-size: 14px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text-primary);
-      transition: border-color 0.2s;
-    }
-    .form-input:focus { outline: none; border-color: var(--accent); }
-    .form-input::placeholder { color: var(--text-muted); }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.2s;
-    }
-    .modal-overlay.active { opacity: 1; visibility: visible; }
-    .modal {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 30px;
-      width: 100%;
-      max-width: 480px;
-      max-height: 90vh;
-      overflow-y: auto;
-      transform: scale(0.95);
-      transition: transform 0.2s;
-    }
-    .modal-overlay.active .modal { transform: scale(1); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .modal-title { font-size: 20px; font-weight: 600; margin: 0; }
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      font-size: 24px;
-      line-height: 1;
-    }
-    .modal-close:hover { color: var(--text-primary); }
-    .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
-
-    /* Login screen */
-    .login-container {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .login-box {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 400px;
-    }
-    .login-header { text-align: center; margin-bottom: 32px; }
-    .login-logo {
-      width: 64px;
-      height: 64px;
-      background: var(--monero-orange);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 24px;
-      color: #fff;
-      margin: 0 auto 16px;
-    }
-    .login-title { margin: 0 0 8px; font-size: 24px; }
-    .login-subtitle { color: var(--text-muted); margin: 0; }
-    .login-error {
-      background: rgba(247, 118, 142, 0.1);
-      border: 1px solid var(--error);
-      color: var(--error);
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      font-size: 14px;
-      display: none;
-    }
-    .login-error.show { display: block; }
-
-    /* Empty state */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-    }
-    .empty-state svg { width: 64px; height: 64px; margin-bottom: 16px; opacity: 0.5; }
-    .empty-state h3 { margin: 0 0 8px; color: var(--text-secondary); }
-    .empty-state p { margin: 0; }
-
-    /* Loading */
-    .loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-    }
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Utility */
-    .hidden { display: none !important; }
-    .text-muted { color: var(--text-muted); }
-    .text-success { color: var(--success); }
-    .text-error { color: var(--error); }
-    .text-mono { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; }
-    .mb-0 { margin-bottom: 0; }
-    .mt-20 { margin-top: 20px; }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .stats-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Filters */
-    .filters {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-    .filter-select {
-      padding: 8px 12px;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text-primary);
-      font-size: 14px;
-    }
-    .filter-select:focus { outline: none; border-color: var(--accent); }
-  </style>
-</head>
-<body>
-
-<!-- Login Screen -->
-<div id="login-screen" class="login-container">
-  <div class="login-box">
-    <div class="login-header">
-      <div class="login-logo">XMR</div>
-      <h1 class="login-title">Vendor Dashboard</h1>
-      <p class="login-subtitle">Sign in to manage your XMRpos account</p>
-    </div>
-    <div id="login-error" class="login-error"></div>
-    <form id="login-form">
-      <div class="form-group">
-        <label class="form-label">Username</label>
-        <input type="text" id="login-username" class="form-input" placeholder="Enter your username" required autocomplete="username" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="login-password" class="form-input" placeholder="Enter your password" required autocomplete="current-password" />
-      </div>
-      <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">
-        Sign In
-      </button>
-    </form>
-    <p style="text-align: center; margin-top: 20px; font-size: 14px;">
-      <span class="text-muted">Don't have an account?</span>
-      <a href="#" id="show-signup">Create one</a>
-    </p>
-  </div>
-</div>
-
-<!-- Main App -->
-<div id="app-screen" class="app hidden">
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h1><span class="logo">XMR</span> Vendor</h1>
-    </div>
-    <nav class="nav">
-      <div class="nav-item active" data-page="dashboard">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        Dashboard
-      </div>
-      <div class="nav-item" data-page="transactions">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-        Transactions
-      </div>
-      <div class="nav-item" data-page="pos">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-        POS Devices
-      </div>
-      <div class="nav-item" data-page="settings">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        Settings
-      </div>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="user-info">
-        <div class="user-avatar" id="user-avatar">V</div>
-        <div class="user-details">
-          <div class="user-name" id="user-name">Vendor</div>
-          <div class="user-role">Vendor Account</div>
-        </div>
-      </div>
-      <button class="btn btn-secondary btn-sm mt-20" style="width: 100%;" id="logout-btn">Sign Out</button>
-    </div>
-  </aside>
-
-  <!-- Main Content -->
-  <main class="main">
-    <header class="header">
-      <h2 id="page-title">Dashboard</h2>
-      <div id="header-actions"></div>
-    </header>
-    <div class="content" id="page-content">
-      <!-- Content loaded dynamically -->
-    </div>
-  </main>
-</div>
-
-<!-- Create POS Modal -->
-<div class="modal-overlay" id="create-pos-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Create POS Device</h3>
-      <button class="modal-close" data-close="create-pos-modal">&times;</button>
-    </div>
-    <form id="create-pos-form">
-      <div class="form-group">
-        <label class="form-label">Device Name</label>
-        <input type="text" id="pos-name-input" class="form-input" placeholder="e.g., Register 1" required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="pos-password-input" class="form-input" placeholder="Enter device password" required />
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" data-close="create-pos-modal">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Device</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Signup Modal -->
-<div class="modal-overlay" id="signup-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 class="modal-title">Create Vendor Account</h3>
-      <button class="modal-close" data-close="signup-modal">&times;</button>
-    </div>
-    <div id="signup-error" class="login-error"></div>
-    <form id="signup-form">
-      <div class="form-group">
-        <label class="form-label">Store Name</label>
-        <input type="text" id="signup-username" class="form-input" placeholder="Choose a store name" required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email (optional)</label>
-        <input type="email" id="signup-email" class="form-input" placeholder="your@email.com" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" id="signup-password" class="form-input" placeholder="Choose a password (min 8 characters)" required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Monero Payout Address</label>
-        <input type="text" id="signup-address" class="form-input text-mono" placeholder="8..." required />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Invite Code</label>
-        <input type="text" id="signup-invite" class="form-input" placeholder="Enter your invite code" required />
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" data-close="signup-modal">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Account</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
 // ============ Configuration ============
 const API_BASE = '/api';
+
+// ============ Clipboard (works over plain http where navigator.clipboard is unavailable) ============
+function clipCopy(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text); return true; }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '-1000px'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+    const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  } catch (e) { return false; }
+}
 
 // ============ Security: HTML Escaping ============
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
-  const div = document.createElement('div');
-  div.textContent = String(str);
-  return div.innerHTML;
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// Errors come as JSON {error} / {message} or as plain text
+async function errorMessage(res, fallback) {
+  const text = await res.text().catch(() => '');
+  try {
+    const data = JSON.parse(text);
+    if (data.error || data.message) return data.error || data.message;
+  } catch (e) {}
+  return text.trim() || fallback;
 }
 
 // ============ State ============
@@ -581,7 +104,7 @@ async function refreshAccessToken() {
 // user stays logged in across reloads (it gets exchanged for a new access
 // token on page load).
 function saveAuth() {
-  localStorage.setItem('xmrpos_auth', JSON.stringify({
+  localStorage.setItem('mm_vendor_auth', JSON.stringify({
     refreshToken: auth.refreshToken,
     vendorName: auth.vendorName,
     vendorId: auth.vendorId
@@ -589,7 +112,7 @@ function saveAuth() {
 }
 
 function loadAuth() {
-  const saved = localStorage.getItem('xmrpos_auth');
+  const saved = localStorage.getItem('mm_vendor_auth');
   if (!saved) return false;
   try {
     const data = JSON.parse(saved);
@@ -598,14 +121,14 @@ function loadAuth() {
     auth.vendorId = data.vendorId != null ? data.vendorId : null;
     return auth.refreshToken !== null;
   } catch (e) {
-    localStorage.removeItem('xmrpos_auth');
+    localStorage.removeItem('mm_vendor_auth');
     return false;
   }
 }
 
 function logout() {
   auth = { accessToken: null, refreshToken: null, vendorName: null, vendorId: null };
-  localStorage.removeItem('xmrpos_auth');
+  localStorage.removeItem('mm_vendor_auth');
   showLoginScreen();
 }
 
@@ -617,8 +140,7 @@ async function login(username, password) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Login failed' }));
-    throw new Error(err.error || 'Invalid credentials');
+    throw new Error(await errorMessage(res, 'Invalid credentials'));
   }
 
   const data = await res.json();
@@ -643,8 +165,7 @@ async function signup(username, email, password, address, inviteCode) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Signup failed' }));
-    throw new Error(err.message || err.error || 'Could not create account');
+    throw new Error(await errorMessage(res, 'Could not create account'));
   }
 
   await login(username, password);
@@ -681,8 +202,11 @@ async function fetchPosDevices() {
 
 async function initiateWithdrawal() {
   const res = await api('/vendor/transfer-balance', { method: 'POST' });
+  if (!res.ok) {
+    return { ok: false, error: await errorMessage(res, 'Failed to initiate withdrawal') };
+  }
   const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data };
+  return { ok: true, message: data.message };
 }
 
 async function createPOS(name, password) {
@@ -692,8 +216,7 @@ async function createPOS(name, password) {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Failed to create POS' }));
-    throw new Error(err.error || 'Could not create POS device');
+    throw new Error(await errorMessage(res, 'Could not create POS device'));
   }
 
   return await res.json();
@@ -707,14 +230,13 @@ async function exportCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'xmrpos-transactions-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.download = 'monero-merchant-transactions-' + new Date().toISOString().split('T')[0] + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } else {
-    const data = await res.json().catch(() => ({}));
-    alert(data.error || 'No transactions to export');
+    alert(await errorMessage(res, 'No transactions to export'));
   }
 }
 
@@ -938,12 +460,12 @@ async function renderDashboard(container, headerActions) {
   withdrawBtn.addEventListener('click', async () => {
     withdrawBtn.disabled = true;
     withdrawBtn.textContent = 'Processing...';
-    const { ok, data } = await initiateWithdrawal();
+    const { ok, message, error } = await initiateWithdrawal();
     if (ok) {
-      alert(data.message || 'Withdrawal initiated successfully!');
+      alert(message || 'Withdrawal initiated successfully!');
       navigateTo('dashboard');
     } else {
-      alert(data.error || 'Failed to initiate withdrawal');
+      alert(error);
       withdrawBtn.disabled = false;
       withdrawBtn.textContent = 'Initiate Withdrawal';
     }
@@ -1047,6 +569,26 @@ async function renderPOS(container, headerActions) {
   headerActions.appendChild(addBtn);
 
   while (container.firstChild) container.removeChild(container.firstChild);
+
+  // Show "Connect your till" panel right after a device is created (password shown once)
+  if (window.__lastPOS) {
+    const d = window.__lastPOS; window.__lastPOS = null;
+    const url = window.location.origin;
+    const vid = (auth && auth.vendorId != null) ? auth.vendorId : 'N/A';
+    const row = (k, v) => '<div class="crow"><div class="ck">' + escapeHtml(k) + '</div><div class="cv">' + escapeHtml(v) + '</div><div class="ccopy" data-v="' + escapeHtml(v) + '">&#8455; Copy</div></div>';
+    const panel = document.createElement('div');
+    panel.className = 'connect-till';
+    panel.innerHTML =
+      '<h3>📲 Connect your till</h3>' +
+      '<div class="lead">Just created <strong>' + escapeHtml(d.name) + '</strong>. Enter these into the Monero Merchant Android app:</div>' +
+      row('Instance URL', url) + row('Vendor ID', String(vid)) + row('Username', d.name) + row('Password', d.password) +
+      '<div class="chint">🔒 The password is shown only now — copy it before leaving this page.</div>';
+    container.appendChild(panel);
+    panel.querySelectorAll('.ccopy').forEach(b => b.addEventListener('click', () => {
+      const ok = clipCopy(b.dataset.v);
+      b.textContent = ok ? 'Copied' : 'Select manually'; setTimeout(() => { b.innerHTML = '&#8455; Copy'; }, 1400);
+    }));
+  }
 
   const devices = await fetchPosDevices();
 
@@ -1224,12 +766,16 @@ function renderSettings(container, headerActions) {
       });
 
       if (res.ok) {
+        // The old tokens are invalid after a password change
+        const data = await res.json();
+        auth.accessToken = data.access_token;
+        auth.refreshToken = data.refresh_token;
+        saveAuth();
         alert('Password updated successfully');
         $('current-password').value = '';
         $('new-password').value = '';
       } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Failed to update password');
+        alert(await errorMessage(res, 'Failed to update password'));
       }
     } catch (e) {
       alert('Error updating password');
@@ -1275,7 +821,7 @@ async function confirmDeleteAccount() {
           alert('Account deleted');
           logout();
         } else {
-          alert('Failed to delete account');
+          alert(await errorMessage(res, 'Failed to delete account'));
         }
       } catch (e) {
         alert('Error deleting account');
@@ -1348,9 +894,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await createPOS(name, password);
       closeModal('create-pos-modal');
+      window.__lastPOS = { name: name, password: password };
       $('pos-name-input').value = '';
       $('pos-password-input').value = '';
-      alert('POS device "' + escapeHtml(name) + '" created successfully!');
       navigateTo('pos');
     } catch (err) {
       alert(err.message);
@@ -1377,7 +923,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 });
-</script>
-
-</body>
-</html>

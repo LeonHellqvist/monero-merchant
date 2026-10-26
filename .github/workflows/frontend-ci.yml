@@ -1,0 +1,119 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "gateway/**"
+      - "docker-compose.yml"
+      - ".github/workflows/frontend-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "gateway/**"
+      - "docker-compose.yml"
+      - ".github/workflows/frontend-ci.yml"
+  workflow_call:
+
+permissions: {}
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check JavaScript syntax
+        run: |
+          for f in frontend/site/*/*.js; do
+            node --check "$f"
+          done
+
+      # The gateway in compose must use the same Caddy image
+      - name: Read Caddy image
+        id: caddy
+        run: |
+          image="$(sed -n 's/^FROM //p' frontend/Dockerfile)"
+          if ! grep -qF "image: ${image}" docker-compose.yml; then
+            echo "The gateway image in docker-compose.yml must match frontend/Dockerfile (${image})" >&2
+            exit 1
+          fi
+          echo "image=${image}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Caddyfiles
+        env:
+          CADDY: ${{ steps.caddy.outputs.image }}
+        run: |
+          for f in frontend/Caddyfile gateway/Caddyfile; do
+            docker run --rm -v "$PWD/$f:/etc/caddy/Caddyfile:ro" "$CADDY" \
+              caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          done
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image (amd64, not pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: frontend
+          platforms: linux/amd64
+          load: true
+          tags: frontend:ci
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      # The stub backend echoes the X-Real-IP it gets
+      - name: Smoke test
+        env:
+          CADDY: ${{ steps.caddy.outputs.image }}
+        run: |
+          docker network create mm
+          docker run -d --name backend --network mm "$CADDY" \
+            caddy respond --listen :8080 'real-ip={http.request.header.X-Real-IP}'
+          docker run -d --name frontend --network mm frontend:ci
+          docker run -d --name gateway --network mm -p 8080:80 \
+            -v "$PWD/gateway/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            --cap-drop ALL --cap-add NET_BIND_SERVICE "$CADDY"
+
+          for _ in $(seq 30); do
+            curl -sf -o /dev/null localhost:8080/store/ && break
+            sleep 1
+          done
+
+          fail=0
+          # check <name> <expected glob> <actual>
+          check() {
+            # shellcheck disable=SC2053
+            if [[ "$3" == $2 ]]; then
+              echo "ok: $1"
+            else
+              echo "::error::$1: expected '$2', got '$3'"
+              fail=1
+            fi
+          }
+          g=localhost:8080
+          check "root redirects" "302 http://$g/store/" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' $g/)"
+          check "portal" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/store/)"
+          check "script" "200" "$(curl -s -o /dev/null -w '%{http_code}' $g/store/app.js)"
+          check "csp" "*default-src 'none'*" "$(curl -s -D - -o /dev/null $g/store/ | grep -i '^content-security-policy')"
+          check "callback blocked" "404" "$(curl -s -o /dev/null -w '%{http_code}' -X POST $g/api/callback/receive/x)"
+          real="$(curl -s $g/api/misc/health)"
+          check "api proxied" "real-ip=?*" "$real"
+          check "client ip not spoofable" "$real" "$(curl -s -H 'X-Real-IP: 6.6.6.6' -H 'X-Forwarded-For: 7.7.7.7' $g/api/misc/health)"
+          check "frontend user" "65534:65534" "$(docker inspect -f '{{.Config.User}}' frontend:ci)"
+
+          if [[ "$fail" != 0 ]]; then
+            docker logs gateway
+            docker logs frontend
+            exit 1
+          fi

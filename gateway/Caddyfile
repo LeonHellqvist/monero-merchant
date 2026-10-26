@@ -1,0 +1,35 @@
+{
+	admin off
+	persist_config off
+	servers {
+		# No HTTP/3, UDP 443 isn't published
+		protocols h1 h2
+		# Proxies allowed to set X-Forwarded-For
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+		trusted_proxies_strict
+	}
+}
+
+# A domain gets automatic HTTPS
+{$SITE_ADDRESS::80} {
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000"
+
+	# MoneroPay calls the backend directly
+	handle /api/callback/* {
+		respond 404
+	}
+
+	@api path /api /api/*
+	handle @api {
+		reverse_proxy {$BACKEND_UPSTREAM:backend:8080} {
+			header_up X-Real-IP {client_ip}
+			# Keep POS websockets open across reloads
+			stream_close_delay 5m
+		}
+	}
+
+	handle {
+		reverse_proxy {$FRONTEND_UPSTREAM:frontend:8080}
+	}
+}

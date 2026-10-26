@@ -101,6 +101,7 @@ services:
   # ------------------------
   backend:
     image: moneromerchant/monero-merchant-backend
+    build: ./backend
     restart: unless-stopped
     depends_on:
       backend-db:
@@ -137,11 +138,42 @@ services:
       WALLET_PASSWORD: ${WALLET_PASSWORD}
       WALLET_AUTO_REFRESH_PERIOD: ${WALLET_AUTO_REFRESH_PERIOD}
 
-      TRUSTED_PROXY_HEADER: ${TRUSTED_PROXY_HEADER:-}
-    ports:
-      - "${BACKEND_PORT}:8080"
+      # Set by the gateway
+      TRUSTED_PROXY_HEADER: X-Real-IP
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # ------------------------
+  # Frontend
+  # ------------------------
+  frontend:
+    image: monero-merchant-frontend
+    build: ./frontend
+    restart: unless-stopped
+
+  # ------------------------
+  # Gateway
+  # ------------------------
+  gateway:
+    image: caddy:2.11.7-alpine@sha256:eb4d35b7452d1ab6171fbdbe8d9275b2301dad6dad92115d91e19fb9b24d510f
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/32}
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - gateway_data:/data
+      - gateway_config:/config
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+
 volumes:
   backend_db:
+  gateway_data:
+  gateway_config:
