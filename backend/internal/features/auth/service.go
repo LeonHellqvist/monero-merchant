@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"time"
 
@@ -11,13 +12,23 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	vendorRefreshTokenTTL = 30 * 24 * time.Hour
+	posRefreshTokenTTL    = 90 * 24 * time.Hour
+	adminRefreshTokenTTL  = 24 * time.Hour
+)
+
+var ErrInvalidCurrentPassword = errors.New("invalid current password")
+
 type AuthService struct {
 	repo   AuthRepository
 	config *config.Config
+	// New on every start, so a restart (needed to change ADMIN_PASSWORD) logs out every admin
+	adminStamp string
 }
 
 func NewAuthService(repo AuthRepository, cfg *config.Config) *AuthService {
-	return &AuthService{repo: repo, config: cfg}
+	return &AuthService{repo: repo, config: cfg, adminStamp: rand.Text()}
 }
 
 /*
@@ -104,7 +115,7 @@ func (s *AuthService) UpdateVendorPassword(ctx context.Context, vendorID uint, c
 		return "", "", errors.New("vendor not found")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(vendor.PasswordHash), []byte(currentPassword)); err != nil {
-		return "", "", errors.New("invalid current password")
+		return "", "", ErrInvalidCurrentPassword
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -135,7 +146,7 @@ func (s *AuthService) UpdatePosPassword(ctx context.Context, posID uint, vendorI
 		return "", "", errors.New("pos not found")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(pos.PasswordHash), []byte(currentPassword)); err != nil {
-		return "", "", errors.New("invalid current password")
+		return "", "", ErrInvalidCurrentPassword
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
@@ -178,51 +189,49 @@ func (s *AuthService) UpdatePosPasswordFromVendor(ctx context.Context, posID uin
 	return accessToken, newRefreshToken, nil
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string, claims jwt.MapClaims) (accessToken string, newRefreshToken string, err error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
-		}
+type refreshClaims struct {
+	Role            string `json:"role"`
+	VendorID        uint   `json:"vendor_id"`
+	PosID           uint   `json:"pos_id"`
+	PasswordVersion uint32 `json:"password_version"`
+	AdminStamp      string `json:"admin_stamp"`
+	jwt.RegisteredClaims
+}
+
+func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (accessToken string, newRefreshToken string, err error) {
+	claims := &refreshClaims{}
+	token, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.config.JWTRefreshSecret), nil
-	})
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 
 	if err != nil || !token.Valid {
 		return "", "", errors.New("invalid refresh token")
 	}
 
-	role := claims["role"].(string)
-
-	switch role {
+	switch claims.Role {
 	case "admin":
+		if !utils.SecureCompare(claims.AdminStamp, s.adminStamp) {
+			return "", "", errors.New("token is outdated (server restarted)")
+		}
 		return s.generateAdminToken()
 	case "vendor":
-		vendorID := uint(claims["vendor_id"].(float64))
-		passwordVersion := uint32(claims["password_version"].(float64))
-		// check that the password version matches
-		vendor, err := s.repo.FindVendorByID(ctx, vendorID)
+		vendor, err := s.repo.FindVendorByID(ctx, claims.VendorID)
 		if err != nil {
 			return "", "", errors.New("invalid credentials")
 		}
-		if vendor.PasswordVersion != passwordVersion {
+		if vendor.PasswordVersion != claims.PasswordVersion {
 			return "", "", errors.New("token is outdated (password changed)")
 		}
-		return s.generateVendorToken(vendorID, passwordVersion)
+		return s.generateVendorToken(claims.VendorID, claims.PasswordVersion)
 	case "pos":
-		vendorID := uint(claims["vendor_id"].(float64))
-		passwordVersion := uint32(claims["password_version"].(float64))
-		posID := uint(claims["pos_id"].(float64))
-		// check that the password version matches
-		pos, err := s.repo.FindPosByID(ctx, posID)
-		if err != nil {
+		pos, err := s.repo.FindPosByID(ctx, claims.PosID)
+		if err != nil || pos.VendorID != claims.VendorID {
 			return "", "", errors.New("invalid credentials")
 		}
-		if pos.PasswordVersion != passwordVersion {
+		if pos.PasswordVersion != claims.PasswordVersion {
 			return "", "", errors.New("token is outdated (password changed)")
 		}
-		return s.generatePosToken(vendorID, posID, passwordVersion)
+		return s.generatePosToken(claims.VendorID, claims.PosID, claims.PasswordVersion)
 	default:
 		return "", "", errors.New("invalid role in token")
 	}
@@ -240,6 +249,7 @@ func (s *AuthService) generateVendorToken(vendorID uint, passwordVersion uint32)
 		"vendor_id":        vendorID,
 		"role":             "vendor",
 		"password_version": passwordVersion,
+		"exp":              time.Now().Add(vendorRefreshTokenTTL).Unix(),
 	})
 
 	accessToken, err = accessTokenJWT.SignedString([]byte(s.config.JWTSecret))
@@ -269,6 +279,7 @@ func (s *AuthService) generatePosToken(vendorID uint, posID uint, passwordVersio
 		"role":             "pos",
 		"password_version": passwordVersion,
 		"pos_id":           posID,
+		"exp":              time.Now().Add(posRefreshTokenTTL).Unix(),
 	})
 
 	accessToken, err = accessTokenJWT.SignedString([]byte(s.config.JWTSecret))
@@ -289,13 +300,15 @@ func (s *AuthService) generateAdminToken() (accessToken string, refreshToken str
 		"vendor_id":        0,
 		"role":             "admin",
 		"password_version": 0,
-		"exp":              time.Now().Add(time.Minute * 30).Unix(),
+		"exp":              time.Now().Add(time.Minute * 5).Unix(),
 	})
 
 	refreshTokenJWT := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"vendor_id":        0,
 		"role":             "admin",
 		"password_version": 0,
+		"admin_stamp":      s.adminStamp,
+		"exp":              time.Now().Add(adminRefreshTokenTTL).Unix(),
 	})
 
 	accessToken, err = accessTokenJWT.SignedString([]byte(s.config.JWTSecret))

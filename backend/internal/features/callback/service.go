@@ -86,30 +86,26 @@ func (s *CallbackService) StartConfirmationChecker(ctx context.Context, interval
 
 // This method queries for unconfirmed transactions and checks MoneroPay
 func (s *CallbackService) checkUnconfirmedTransactions(ctx context.Context) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	unconfirmed, err := s.repo.FindUnconfirmedTransactions(ctx)
 	if err != nil {
 		return
 	}
 
 	for _, tx := range unconfirmed {
-		callCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 		// Skip transactions without a subaddress
 		if tx.SubAddress == nil {
-			cancel()
-			continue
-		}
-		moneroStatus, err := s.moneroPay.GetReceiveAddress(callCtx, *tx.SubAddress, &moneropay.GetReceiveAddressParams{})
-		cancel()
-		if err != nil {
 			continue
 		}
 
-		if moneroStatus != nil {
+		// Lock per transaction so a callback waits for one MoneroPay call, not the whole sweep
+		s.mu.Lock()
+		callCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+		moneroStatus, err := s.moneroPay.GetReceiveAddress(callCtx, *tx.SubAddress, &moneropay.GetReceiveAddressParams{})
+		cancel()
+		if err == nil && moneroStatus != nil {
 			_ = s.processTransaction(ctx, tx.ID, *moneroStatus)
 		}
+		s.mu.Unlock()
 	}
 }
 
@@ -170,7 +166,7 @@ func (s *CallbackService) processTransaction(ctx context.Context, transactionID 
 	// Calculate if transaction is accepted
 	allAccepted := true
 	for _, subTx := range transaction.SubTransactions {
-		if subTx.Confirmations < transaction.RequiredConfirmations {
+		if subTx.Confirmations < transaction.RequiredConfirmations || (subTx.DoubleSpendSeen && subTx.Confirmations == 0) {
 			allAccepted = false
 			break
 		}

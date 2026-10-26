@@ -3,13 +3,13 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/httprate"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
 	/* "github.com/monero-merchant/monero-merchant/backend/internal/core/utils" */)
 
@@ -21,7 +21,7 @@ type AuthHandler struct {
 func NewAuthHandler(service *AuthService) *AuthHandler {
 	return &AuthHandler{
 		service: service,
-		limiter: httprate.NewRateLimiter(5, 1*time.Minute),
+		limiter: httprate.NewRateLimiter(10, 15*time.Minute),
 	}
 }
 
@@ -171,24 +171,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the refresh token to extract claims
-	token, err := jwt.Parse(req.RefreshToken, func(token *jwt.Token) (interface{}, error) {
-		// You may want to check the signing method here
-		return []byte(h.service.config.JWTRefreshSecret), nil
-	})
-
-	if err != nil || !token.Valid {
-		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
-		return
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
-		return
-	}
-
-	accessToken, refreshToken, err := h.service.RefreshToken(ctx, req.RefreshToken, claims)
+	accessToken, refreshToken, err := h.service.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -223,6 +206,11 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(req.NewPassword) < 8 || len(req.NewPassword) > 72 {
+		http.Error(w, "password must be at least 8 characters and no more than 72 characters", http.StatusBadRequest)
+		return
+	}
+
 	role, _ := r.Context().Value(models.ClaimsRoleKey).(string)
 	vendorIDPtr, _ := r.Context().Value(models.ClaimsVendorIDKey).(*uint)
 	posIDPtr, _ := r.Context().Value(models.ClaimsPosIDKey).(*uint)
@@ -238,18 +226,14 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 			// Check if the vendor owns the POS
 			pos, err := h.service.repo.FindPosByID(ctx, *req.PosID)
-			if err != nil {
+			if err != nil || pos.VendorID != *vendorIDPtr {
 				http.Error(w, "POS not found", http.StatusNotFound)
-				return
-			}
-			if pos.VendorID != *vendorIDPtr {
-				http.Error(w, "Unauthorized to update this POS password", http.StatusUnauthorized)
 				return
 			}
 
 			accessToken, refreshToken, err := h.service.UpdatePosPasswordFromVendor(ctx, *req.PosID, *vendorIDPtr, req.NewPassword)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				http.Error(w, "Failed to update password", http.StatusInternalServerError)
 				return
 			}
 			resp := loginResponse{
@@ -265,9 +249,16 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, "Invalid vendor_id claim", http.StatusUnauthorized)
 				return
 			}
+			if h.limiter.RespondOnLimit(w, r, fmt.Sprintf("vendor-password:%d", *vendorIDPtr)) {
+				return
+			}
 			accessToken, refreshToken, err := h.service.UpdateVendorPassword(ctx, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
+				if errors.Is(err, ErrInvalidCurrentPassword) {
+					http.Error(w, err.Error(), http.StatusForbidden)
+					return
+				}
+				http.Error(w, "Failed to update password", http.StatusInternalServerError)
 				return
 			}
 			resp := loginResponse{
@@ -280,13 +271,20 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		}
 	case "pos":
 		// POS can only update its own password
-		if posIDPtr == nil {
+		if posIDPtr == nil || vendorIDPtr == nil {
 			http.Error(w, "Invalid pos_id claim", http.StatusUnauthorized)
+			return
+		}
+		if h.limiter.RespondOnLimit(w, r, fmt.Sprintf("pos-password:%d", *posIDPtr)) {
 			return
 		}
 		accessToken, refreshToken, err := h.service.UpdatePosPassword(ctx, *posIDPtr, *vendorIDPtr, req.CurrentPassword, req.NewPassword)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			if errors.Is(err, ErrInvalidCurrentPassword) {
+				http.Error(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			http.Error(w, "Failed to update password", http.StatusInternalServerError)
 			return
 		}
 		resp := loginResponse{
@@ -298,6 +296,6 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	http.Error(w, "Forbidden", http.StatusForbidden)
 	io.Copy(io.Discard, r.Body)
 }
