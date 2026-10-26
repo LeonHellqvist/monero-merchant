@@ -42,6 +42,7 @@ lint/generated/
 *.log
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.swp
 *.swo
 *~
