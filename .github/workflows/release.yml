@@ -1,28 +1,39 @@
-name: Frontend release
+name: Release
 
+# v2.2.0 publishes the backend, frontend and gateway images as one release.
+# v2.2.0-rc.1 publishes a test build without moving latest.
 on:
   push:
     tags:
-      - "frontend-v*"
+      - "v*"
 
 permissions: {}
 
 concurrency:
-  group: frontend-release
+  group: release
   cancel-in-progress: false
 
 jobs:
-  checks:
-    name: Checks
+  backend-checks:
+    name: Backend checks
     permissions:
       contents: read
-    uses: ./.github/workflows/frontend-ci.yml # zizmor: ignore[self-repository]
+    uses: ./.github/workflows/backend-ci.yml # zizmor: ignore[self-repository]
+
+  web-checks:
+    name: Web checks
+    permissions:
+      contents: read
+    uses: ./.github/workflows/web-ci.yml # zizmor: ignore[self-repository]
 
   image:
-    name: Publish image
-    needs: checks
+    name: Publish ${{ matrix.component }} image
+    needs: [backend-checks, web-checks]
+    strategy:
+      matrix:
+        component: [backend, frontend, gateway]
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -36,13 +47,15 @@ jobs:
 
       - name: Resolve version and image tags
         id: meta
+        env:
+          COMPONENT: ${{ matrix.component }}
         run: |
-          version="${GITHUB_REF_NAME#frontend-v}"
+          version="${GITHUB_REF_NAME#v}"
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-            echo "Tag '${GITHUB_REF_NAME}' is not frontend-v<semver>" >&2
+            echo "Tag '${GITHUB_REF_NAME}' is not v<semver>" >&2
             exit 1
           fi
-          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/monero-merchant-frontend"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/monero-merchant-${COMPONENT}"
           tags="${image}:${version}"
           if [[ "$version" != *-* ]]; then
             tags="${tags},${image}:latest"
@@ -65,10 +78,12 @@ jobs:
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: frontend
+          context: ${{ matrix.component }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          # Only the backend uses it, for the version it logs at startup
+          build-args: ${{ matrix.component == 'backend' && format('VERSION={0}', steps.meta.outputs.version) || '' }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}

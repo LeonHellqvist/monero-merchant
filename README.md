@@ -164,7 +164,7 @@ The vendor portal is at `http://<server>:8080/`, the admin dashboard at `/admin/
 
 ### Using your own reverse proxy
 
-The `gateway` service is a stock Caddy with [gateway/Caddyfile](gateway/Caddyfile). To use your own proxy instead, remove it and route:
+The `gateway` service is Caddy with [gateway/Caddyfile](gateway/Caddyfile). To use your own proxy instead, remove it and route:
 
 - `/api` and `/api/*` to `backend:8080`, with WebSocket upgrades allowed
 - everything else to `frontend:8080`
@@ -191,9 +191,9 @@ Then use "Restore from Seed" on the dashboard's home page, and run `docker compo
 
 `make restart` # restart containers (after .env changes)
 
-`make build` # build the backend and frontend images from local source
+`make build` # build the backend, frontend and gateway images from local source
 
-`make rebuild` # build local source and recreate the backend and frontend
+`make rebuild` # build local source and recreate the backend, frontend and gateway
 
 `make down` # stop containers
 

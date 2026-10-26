@@ -10,10 +10,11 @@ up:
 build:
 	docker build -t moneromerchant/monero-merchant-backend ./backend
 	docker build -t monero-merchant-frontend ./frontend
+	docker build -t monero-merchant-gateway ./gateway
 
 rebuild:
 	$(MAKE) build
-	docker compose up -d --force-recreate backend frontend
+	docker compose up -d --force-recreate backend frontend gateway
 
 down:
 	docker compose down
@@ -48,8 +49,8 @@ help:
 	@echo "Available targets:"
 	@echo "  make install   - run setup.sh, build and start services"
 	@echo "  make up        - start existing containers"
-	@echo "  make build     - build the backend and frontend images from local source"
-	@echo "  make rebuild   - build local source and recreate the backend and frontend"
+	@echo "  make build     - build the backend, frontend and gateway images from local source"
+	@echo "  make rebuild   - build local source and recreate the backend, frontend and gateway"
 	@echo "  make down      - stop containers"
 	@echo "  make logs      - follow container logs"
 	@echo "  make ps        - show container status"
