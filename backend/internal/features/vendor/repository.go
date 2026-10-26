@@ -24,7 +24,9 @@ type VendorRepository interface {
 	CreateTransfer(ctx context.Context, transfer *models.Transfer) error
 	GetTransfersToComplete(ctx context.Context, limit int) ([]*models.Transfer, error)
 	MarkTransactionsTransferred(ctx context.Context, tx *gorm.DB, transferID uint, transactionIDs []uint) error
-	MarkTransferCompleted(ctx context.Context, tx *gorm.DB, transferID uint, AmountTransferred int64, txHash string) error
+	SetTransferTx(ctx context.Context, tx *gorm.DB, transferID uint, amountTransferred int64, txHash string, txMetadata string) error
+	GetUnrelayedTransfers(ctx context.Context) ([]*models.Transfer, error)
+	MarkTransfersCompleted(ctx context.Context, txHash string) error
 	GetPosDevicesByVendorID(ctx context.Context, vendorID uint) ([]*models.Pos, error)
 	FindTransactionsByVendorID(ctx context.Context, vendorID uint) ([]*models.Transaction, error)
 }
@@ -184,7 +186,7 @@ func (r *vendorRepository) GetTransfersToComplete(ctx context.Context, limit int
 	var transfers []*models.Transfer
 	if err := r.db.WithContext(ctx).
 		Preload("Transactions").
-		Where("completed = ?", false).
+		Where("completed = ? AND tx_hash IS NULL", false).
 		Order("created_at ASC").
 		Limit(limit).
 		Find(&transfers).Error; err != nil {
@@ -205,16 +207,30 @@ func (r *vendorRepository) MarkTransactionsTransferred(ctx context.Context, tx *
 		}).Error
 }
 
-func (r *vendorRepository) MarkTransferCompleted(ctx context.Context, tx *gorm.DB, transferID uint, AmountTransferred int64, txHash string) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
+func (r *vendorRepository) SetTransferTx(ctx context.Context, tx *gorm.DB, transferID uint, amountTransferred int64, txHash string, txMetadata string) error {
 	return tx.WithContext(ctx).Model(&models.Transfer{}).
 		Where("id = ?", transferID).
 		Updates(map[string]interface{}{
-			"completed":          true,
 			"tx_hash":            txHash,
-			"amount_transferred": AmountTransferred,
+			"tx_metadata":        txMetadata,
+			"amount_transferred": amountTransferred,
+		}).Error
+}
+
+func (r *vendorRepository) GetUnrelayedTransfers(ctx context.Context) ([]*models.Transfer, error) {
+	var transfers []*models.Transfer
+	err := r.db.WithContext(ctx).
+		Where("completed = ? AND tx_hash IS NOT NULL", false).
+		Find(&transfers).Error
+	return transfers, err
+}
+
+func (r *vendorRepository) MarkTransfersCompleted(ctx context.Context, txHash string) error {
+	return r.db.WithContext(ctx).Model(&models.Transfer{}).
+		Where("tx_hash = ?", txHash).
+		Updates(map[string]interface{}{
+			"completed":   true,
+			"tx_metadata": nil,
 		}).Error
 }
 
