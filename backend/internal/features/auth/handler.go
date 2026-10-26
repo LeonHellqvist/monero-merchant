@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-chi/httprate"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
 	/* "github.com/monero-merchant/monero-merchant/backend/internal/core/utils" */)
 
@@ -171,24 +170,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the refresh token to extract claims
-	token, err := jwt.Parse(req.RefreshToken, func(token *jwt.Token) (interface{}, error) {
-		// You may want to check the signing method here
-		return []byte(h.service.config.JWTRefreshSecret), nil
-	})
-
-	if err != nil || !token.Valid {
-		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
-		return
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		http.Error(w, "Invalid token claims", http.StatusUnauthorized)
-		return
-	}
-
-	accessToken, refreshToken, err := h.service.RefreshToken(ctx, req.RefreshToken, claims)
+	accessToken, refreshToken, err := h.service.RefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -220,6 +202,11 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.NewPassword) < 8 || len(req.NewPassword) > 72 {
+		http.Error(w, "password must be at least 8 characters and no more than 72 characters", http.StatusBadRequest)
 		return
 	}
 
@@ -280,7 +267,7 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		}
 	case "pos":
 		// POS can only update its own password
-		if posIDPtr == nil {
+		if posIDPtr == nil || vendorIDPtr == nil {
 			http.Error(w, "Invalid pos_id claim", http.StatusUnauthorized)
 			return
 		}

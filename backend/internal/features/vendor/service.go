@@ -256,8 +256,8 @@ func (s *VendorService) CreateVendor(ctx context.Context, name string, email str
 		return 0, models.NewHTTPError(http.StatusBadRequest, "name must be at least 3 characters and no more than 50 characters")
 	}
 
-	if len(password) < 8 || len(password) > 50 {
-		return 0, models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 50 characters")
+	if len(password) < 8 || len(password) > 72 {
+		return 0, models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 72 characters")
 	}
 
 	email = strings.TrimSpace(email)
@@ -367,8 +367,8 @@ func (s *VendorService) CreatePos(ctx context.Context, name string, password str
 		return models.NewHTTPError(http.StatusBadRequest, "name must be at least 3 characters and no more than 50 characters")
 	}
 
-	if len(password) < 8 || len(password) > 50 {
-		return models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 50 characters")
+	if len(password) < 8 || len(password) > 72 {
+		return models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 72 characters")
 	}
 
 	nameTaken, err := s.repo.PosByNameExistsForVendor(ctx, name, vendorID)
