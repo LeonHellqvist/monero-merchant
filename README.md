@@ -162,6 +162,15 @@ To update an existing install, run `git pull` and then `make install` again. It 
 
 The vendor portal is at `http://<server>:8080/store/`, and POS devices connect to `http://<server>:8080`. For HTTPS, point a domain at the server, set `SITE_ADDRESS=<domain>`, `HTTP_PORT=80` and `HTTPS_PORT=443` in `.env`, and run `make restart`.
 
+### Using your own reverse proxy
+
+The `gateway` service is a stock Caddy with [gateway/Caddyfile](gateway/Caddyfile). To use your own proxy instead, remove it and route:
+
+- `/api` and `/api/*` to `backend:8080`, with WebSocket upgrades allowed
+- everything else to `frontend:8080`
+
+The proxy must overwrite `X-Real-IP` with the client address, and the backend must only be reachable through it. Otherwise clients can fake their IP and get around the rate limits.
+
 ### Start / Restart / Rebuild / Stop
 
 `make up` # start services
