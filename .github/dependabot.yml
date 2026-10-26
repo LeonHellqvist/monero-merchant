@@ -17,7 +17,7 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: docker
-    directories: [/backend, /frontend, /wallet-rpc]
+    directories: [/backend, /frontend, /gateway, /wallet-rpc]
     schedule:
       interval: monthly
     cooldown:
