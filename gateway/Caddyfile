@@ -12,6 +12,9 @@
 
 # A domain gets automatic HTTPS
 {$SITE_ADDRESS::80} {
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000"
+
 	# MoneroPay calls the backend directly
 	handle /api/callback/* {
 		respond 404
