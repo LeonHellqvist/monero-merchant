@@ -45,8 +45,6 @@ func (s *Server) Start() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	s.runStartupSequence(ctx)
-
 	s.router = NewRouter(ctx, s.config, s.db, s.walletRPC, s.daemonRPC, s.moneroPay)
 
 	server := &http.Server{
@@ -66,6 +64,9 @@ func (s *Server) Start() error {
 			errCh <- err
 		}
 	}()
+
+	// In the background so a slow wallet-rpc or node doesn't hold up the API
+	go s.runStartupSequence(ctx)
 
 	// Wait for signal or fatal server error
 	select {
