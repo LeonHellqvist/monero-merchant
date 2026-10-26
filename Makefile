@@ -2,7 +2,7 @@
 
 install:
 	./setup.sh
-	docker compose up -d
+	docker compose up -d --build
 
 up:
 	docker compose up -d
@@ -46,7 +46,7 @@ clean:
 
 help:
 	@echo "Available targets:"
-	@echo "  make install   - run setup.sh and start services using prebuilt images"
+	@echo "  make install   - run setup.sh, build and start services"
 	@echo "  make up        - start existing containers"
 	@echo "  make build     - build the backend and frontend images from local source"
 	@echo "  make rebuild   - build local source and recreate the backend and frontend"

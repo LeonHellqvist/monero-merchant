@@ -101,6 +101,7 @@ services:
   # ------------------------
   backend:
     image: moneromerchant/monero-merchant-backend
+    build: ./backend
     restart: unless-stopped
     depends_on:
       backend-db:
