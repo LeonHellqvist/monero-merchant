@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"time"
 
@@ -20,10 +21,12 @@ const (
 type AuthService struct {
 	repo   AuthRepository
 	config *config.Config
+	// New on every start, so a restart (needed to change ADMIN_PASSWORD) logs out every admin
+	adminStamp string
 }
 
 func NewAuthService(repo AuthRepository, cfg *config.Config) *AuthService {
-	return &AuthService{repo: repo, config: cfg}
+	return &AuthService{repo: repo, config: cfg, adminStamp: rand.Text()}
 }
 
 /*
@@ -189,6 +192,7 @@ type refreshClaims struct {
 	VendorID        uint   `json:"vendor_id"`
 	PosID           uint   `json:"pos_id"`
 	PasswordVersion uint32 `json:"password_version"`
+	AdminStamp      string `json:"admin_stamp"`
 	jwt.RegisteredClaims
 }
 
@@ -204,6 +208,9 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (ac
 
 	switch claims.Role {
 	case "admin":
+		if !utils.SecureCompare(claims.AdminStamp, s.adminStamp) {
+			return "", "", errors.New("token is outdated (server restarted)")
+		}
 		return s.generateAdminToken()
 	case "vendor":
 		vendor, err := s.repo.FindVendorByID(ctx, claims.VendorID)
@@ -298,6 +305,7 @@ func (s *AuthService) generateAdminToken() (accessToken string, refreshToken str
 		"vendor_id":        0,
 		"role":             "admin",
 		"password_version": 0,
+		"admin_stamp":      s.adminStamp,
 		"exp":              time.Now().Add(adminRefreshTokenTTL).Unix(),
 	})
 
