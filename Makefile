@@ -1,4 +1,5 @@
 .PHONY: install up down logs ps restart config pull build rebuild reset clean help
+.DEFAULT_GOAL := help
 
 install:
 	./setup.sh
