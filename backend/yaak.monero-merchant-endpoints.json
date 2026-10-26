@@ -1144,6 +1144,346 @@
           "enabled": false,
           "value": "auto"
         }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_zBhK1JBYqv",
+        "createdAt": "2026-10-26T00:19:21.836562664",
+        "updatedAt": "2026-10-26T00:19:21.836562664",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/admin/invites. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [],
+        "method": "GET",
+        "name": "list invites",
+        "sortPriority": 6000.0,
+        "url": "${[ host ]}/api/admin/invites",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_gv7Dmgt2Oo",
+        "createdAt": "2026-10-26T00:19:21.857895646",
+        "updatedAt": "2026-10-26T00:19:21.857895646",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/admin/transactions. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [],
+        "method": "GET",
+        "name": "list all transactions",
+        "sortPriority": 7000.0,
+        "url": "${[ host ]}/api/admin/transactions?limit=100&offset=0",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_yht3oDjoOV",
+        "createdAt": "2026-10-26T00:19:21.879906367",
+        "updatedAt": "2026-10-26T00:19:21.879906367",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/admin/pos-devices. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [],
+        "method": "GET",
+        "name": "list all POS devices",
+        "sortPriority": 8000.0,
+        "url": "${[ host ]}/api/admin/pos-devices",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_NW7eHbK3kf",
+        "createdAt": "2026-10-26T00:19:21.900713709",
+        "updatedAt": "2026-10-26T00:19:21.900713709",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example GET /api/admin/wallet-info. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [],
+        "method": "GET",
+        "name": "wallet info",
+        "sortPriority": 9000.0,
+        "url": "${[ host ]}/api/admin/wallet-info",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_79KekMap8X",
+        "createdAt": "2026-10-26T00:19:21.924862527",
+        "updatedAt": "2026-10-26T00:19:21.924862527",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {},
+        "bodyType": null,
+        "description": "Example POST /api/admin/setup-wallet. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [],
+        "method": "POST",
+        "name": "set up wallet",
+        "sortPriority": 10000.0,
+        "url": "${[ host ]}/api/admin/setup-wallet",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_3MIy9XouDT",
+        "createdAt": "2026-10-26T00:19:21.946652176",
+        "updatedAt": "2026-10-26T00:19:21.946652176",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {
+          "text": "{\n  \"seed\": \"<seed>\",\n  \"restore_height\": 0\n}"
+        },
+        "bodyType": "application/json",
+        "description": "Example POST /api/admin/restore-wallet. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [
+          {
+            "enabled": true,
+            "name": "Content-Type",
+            "value": "application/json",
+            "id": null
+          }
+        ],
+        "method": "POST",
+        "name": "restore wallet",
+        "sortPriority": 11000.0,
+        "url": "${[ host ]}/api/admin/restore-wallet",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
+      },
+      {
+        "model": "http_request",
+        "id": "rq_uCLcS159iY",
+        "createdAt": "2026-10-26T00:19:21.968398178",
+        "updatedAt": "2026-10-26T00:19:21.968398178",
+        "workspaceId": "wk_rXkv29KJAL",
+        "folderId": "fl_cN69X44otu",
+        "authentication": {
+          "prefix": "Bearer",
+          "token": "${[ admin_jwt ]}"
+        },
+        "authenticationType": "bearer",
+        "body": {
+          "text": "{\n  \"password\": \"${[ admin_pass ]}\"\n}"
+        },
+        "bodyType": "application/json",
+        "description": "Example POST /api/admin/wallet-seed. Configure the host and placeholder variables in Global Variables before sending. Replace the access-token placeholder with a token returned by login.",
+        "headers": [
+          {
+            "enabled": true,
+            "name": "Content-Type",
+            "value": "application/json",
+            "id": null
+          }
+        ],
+        "method": "POST",
+        "name": "reveal wallet seed",
+        "sortPriority": 12000.0,
+        "url": "${[ host ]}/api/admin/wallet-seed",
+        "urlParameters": [],
+        "settingSendCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingStoreCookies": {
+          "enabled": false,
+          "value": true
+        },
+        "settingValidateCertificates": {
+          "enabled": false,
+          "value": true
+        },
+        "settingFollowRedirects": {
+          "enabled": false,
+          "value": true
+        },
+        "settingRequestTimeout": {
+          "enabled": false,
+          "value": 0
+        },
+        "settingHttpVersion": {
+          "enabled": false,
+          "value": "auto"
+        }
       }
     ],
     "grpcRequests": [],

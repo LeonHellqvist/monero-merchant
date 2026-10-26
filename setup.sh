@@ -110,6 +110,10 @@ fill_if_empty "MONERO_WALLET_RPC_PASSWORD" "$(gen_secret)"
 echo
 echo "Setup complete."
 echo
+echo "Admin login (stored in .env):"
+echo "  name:     $(grep -m1 '^ADMIN_NAME=' .env | cut -d= -f2-)"
+echo "  password: $(grep -m1 '^ADMIN_PASSWORD=' .env | cut -d= -f2-)"
+echo
 echo "Review .env and make sure values are correct for your environment."
 echo
 echo "Validate your compose file with:"

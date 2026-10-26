@@ -187,9 +187,16 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | POST | `/api/auth/update-password` | Vendor or POS | `{"current_password":"<current-password>","new_password":"<new-password>"}` | Changes own password and returns replacement tokens. Vendor POS reset also accepts `pos_id`. |
 | POST | `/api/admin/invite` | Admin | `{"valid_until":1822307285,"forced_name":null}` | Creates an invite; expiry is Unix seconds, forced name is nullable. |
 | GET | `/api/admin/vendors` | Admin | None | Lists vendors with calculated balances.  |
-| GET | `/api/admin/balance` | Admin | None | Reads shared wallet account 0: total, unlocked and locked balances.  |
+| GET | `/api/admin/balance` | Admin | None | Server wallet balance (total, unlocked, locked) and `vendor_balances`, the unpaid vendor sales it should cover. |
 | POST | `/api/admin/transfer-balance` | Admin | `{"vendor_id":1}` | Queues the selected vendor's payout to its stored subaddress. |
 | POST | `/api/admin/delete` | Admin | `{"vendor_id":1}` | Deletes the selected vendor through the vendor service. |
+| GET | `/api/admin/invites` | Admin | None | Lists invites. |
+| GET | `/api/admin/transactions?limit=100&offset=0` | Admin | None | Lists all sales, newest first, with `total`. |
+| GET | `/api/admin/pos-devices` | Admin | None | Lists all POS devices. |
+| GET | `/api/admin/wallet-info` | Admin | None | Returns `exists`, `address` and `wallet_name`. |
+| POST | `/api/admin/setup-wallet` | Admin | None | Creates the wallet. 409 if one exists. |
+| POST | `/api/admin/restore-wallet` | Admin | `{"seed":"<seed>","restore_height":0}` | Restores the wallet from its seed. 409 if one exists. |
+| POST | `/api/admin/wallet-seed` | Admin | `{"password":"<admin-password>"}` | Returns the wallet seed. |
 | POST | `/api/vendor/create` | None | `{"name":"<vendor-name>","password":"<vendor-password>","monero_subaddress":"<payout-subaddress>","invite_code":"<invite-code>"}` | Invite-based registration; optional `email` is also supported. |
 | GET | `/api/vendor/pos-list` | Vendor | None | Lists the authenticated vendor's POS units. |
 | POST | `/api/vendor/create-pos` | Vendor | `{"name":"<pos-name>","password":"<pos-password>"}` | Creates a POS account belonging to the authenticated vendor. |

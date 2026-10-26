@@ -10,6 +10,10 @@ import (
 type AdminRepository interface {
 	CreateInvite(ctx context.Context, invite *models.Invite) (*models.Invite, error)
 	ListVendorsWithBalances(ctx context.Context) ([]VendorSummary, error)
+	GetVendorBalancesTotal(ctx context.Context) (int64, error)
+	ListInvites(ctx context.Context) ([]models.Invite, error)
+	ListTransactions(ctx context.Context, limit int, offset int) ([]*models.Transaction, int64, error)
+	ListPosDevices(ctx context.Context) ([]*models.Pos, error)
 }
 
 type adminRepository struct {
@@ -48,4 +52,43 @@ func (r *adminRepository) ListVendorsWithBalances(ctx context.Context) ([]Vendor
 	}
 
 	return results, nil
+}
+
+func (r *adminRepository) ListInvites(ctx context.Context) ([]models.Invite, error) {
+	var invites []models.Invite
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&invites).Error
+	return invites, err
+}
+
+func (r *adminRepository) ListTransactions(ctx context.Context, limit int, offset int) ([]*models.Transaction, int64, error) {
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&models.Transaction{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	var transactions []*models.Transaction
+	err := r.db.WithContext(ctx).
+		Preload("SubTransactions").
+		Preload("Pos").
+		Preload("Vendor").
+		Order("created_at DESC, id DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	return transactions, total, err
+}
+
+func (r *adminRepository) ListPosDevices(ctx context.Context) ([]*models.Pos, error) {
+	var devices []*models.Pos
+	err := r.db.WithContext(ctx).Preload("Vendor").Order("created_at DESC").Find(&devices).Error
+	return devices, err
+}
+
+func (r *adminRepository) GetVendorBalancesTotal(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.Transaction{}).
+		Where("confirmed = ? AND transferred = ?", true, false).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&total).Error
+	return total, err
 }

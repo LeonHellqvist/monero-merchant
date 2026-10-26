@@ -73,7 +73,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	// Initialize services
 	vendorService := vendor.NewVendorService(vendorRepository, db, cfg, rpcClient, moneroPayClient)
 	vendorService.StartTransferCompleter(ctx, 30*time.Second) // Check every 30 seconds
-	adminService := admin.NewAdminService(adminRepository, cfg, vendorService)
+	adminService := admin.NewAdminService(adminRepository, cfg, rpcClient, vendorService)
 	authService := auth.NewAuthService(authRepository, cfg)
 	posService := pos.NewPosService(posRepository, cfg, moneroPayClient)
 	posService.StartPendingCleanup(ctx, 15*time.Minute, 2*time.Hour)
@@ -125,6 +125,13 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 			r.Get("/admin/balance", adminHandler.GetWalletBalance)
 			r.Post("/admin/transfer-balance", adminHandler.TransferBalance)
 			r.Post("/admin/delete", adminHandler.DeleteVendor)
+			r.Get("/admin/invites", adminHandler.ListInvites)
+			r.Get("/admin/transactions", adminHandler.ListTransactions)
+			r.Get("/admin/pos-devices", adminHandler.ListPosDevices)
+			r.Get("/admin/wallet-info", adminHandler.GetWalletInfo)
+			r.Post("/admin/setup-wallet", adminHandler.SetupWallet)
+			r.Post("/admin/restore-wallet", adminHandler.RestoreWallet)
+			r.Post("/admin/wallet-seed", adminHandler.GetWalletSeed)
 
 			// Vendor routes
 			r.Post("/vendor/delete", vendorHandler.DeleteVendor)

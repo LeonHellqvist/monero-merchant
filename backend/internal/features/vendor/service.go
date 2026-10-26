@@ -27,12 +27,6 @@ type VendorService struct {
 	mu        sync.Mutex
 }
 
-type WalletBalance struct {
-	Total    uint64 `json:"total"`
-	Unlocked uint64 `json:"unlocked"`
-	Locked   uint64 `json:"locked"`
-}
-
 func NewVendorService(repo VendorRepository, db *gorm.DB, cfg *config.Config, rpcClient *rpc.Client, moneroPay *moneropay.MoneroPayAPIClient) *VendorService {
 	return &VendorService{repo: repo, db: db, config: cfg, rpcClient: rpcClient, moneroPay: moneroPay}
 }
@@ -475,37 +469,6 @@ func (s *VendorService) CreatePos(ctx context.Context, name string, password str
 	}
 
 	return nil
-}
-
-func (s *VendorService) GetBalance(ctx context.Context, _ uint) (*WalletBalance, *models.HTTPError) {
-	if s.rpcClient == nil {
-		return nil, models.NewHTTPError(http.StatusInternalServerError, "wallet RPC client not configured")
-	}
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var resp struct {
-		Balance         uint64 `json:"balance"`
-		UnlockedBalance uint64 `json:"unlocked_balance"`
-	}
-
-	params := map[string]any{"account_index": 0}
-	if err := s.rpcClient.Call(ctx, "get_balance", params, &resp); err != nil {
-		return nil, models.NewHTTPError(http.StatusInternalServerError, "error retrieving wallet balance: "+err.Error())
-	}
-
-	locked := uint64(0)
-	if resp.UnlockedBalance <= resp.Balance {
-		locked = resp.Balance - resp.UnlockedBalance
-	}
-
-	return &WalletBalance{
-		Total:    resp.Balance,
-		Unlocked: resp.UnlockedBalance,
-		Locked:   locked,
-	}, nil
 }
 
 func (s *VendorService) GetVendorAccountBalance(ctx context.Context, vendorID uint) (int64, error) {
