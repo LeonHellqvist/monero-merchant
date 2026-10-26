@@ -2,6 +2,7 @@ package vendor
 
 import (
 	"context"
+	"errors"
 
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
 	"gorm.io/gorm"
@@ -10,8 +11,7 @@ import (
 type VendorRepository interface {
 	VendorByNameExists(ctx context.Context, name string) (bool, error)
 	FindInviteByCode(ctx context.Context, inviteCode string) (*models.Invite, error)
-	CreateVendor(ctx context.Context, vendor *models.Vendor) error
-	SetInviteToUsed(ctx context.Context, inviteID uint) error
+	CreateVendorWithInvite(ctx context.Context, vendor *models.Vendor, inviteID uint) error
 	GetVendorByID(ctx context.Context, vendorID uint) (*models.Vendor, error)
 	DeleteVendor(ctx context.Context, vendorID uint) error
 	DeleteAllTransactionsForVendor(ctx context.Context, vendorID uint) error
@@ -63,18 +63,20 @@ func (r *vendorRepository) FindInviteByCode(ctx context.Context, inviteCode stri
 	return &invite, nil
 }
 
-func (r *vendorRepository) CreateVendor(ctx context.Context, vendor *models.Vendor) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return r.db.WithContext(ctx).Create(vendor).Error
-}
+var ErrInviteUsed = errors.New("invite code already used")
 
-func (r *vendorRepository) SetInviteToUsed(ctx context.Context, inviteID uint) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	return r.db.WithContext(ctx).Model(&models.Invite{}).Where("id = ?", inviteID).Update("used", true).Error
+// CreateVendorWithInvite claims the invite and creates the vendor together, so an invite is only used once
+func (r *vendorRepository) CreateVendorWithInvite(ctx context.Context, vendor *models.Vendor, inviteID uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&models.Invite{}).Where("id = ? AND used = ?", inviteID, false).Update("used", true)
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrInviteUsed
+		}
+		return tx.Create(vendor).Error
+	})
 }
 
 func (r *vendorRepository) GetVendorByID(ctx context.Context, vendorID uint) (*models.Vendor, error) {
