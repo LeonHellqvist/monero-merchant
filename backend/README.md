@@ -186,7 +186,7 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | POST | `/api/auth/login-vendor` | None | `{"name":"<vendor-name>","password":"<vendor-password>"}` | Returns access and refresh tokens and vendor ID. |
 | POST | `/api/auth/update-password` | Vendor or POS | `{"current_password":"<current-password>","new_password":"<new-password>"}` | Changes own password and returns replacement tokens. Vendor POS reset also accepts `pos_id`. |
 | POST | `/api/admin/invite` | Admin | `{"valid_until":1822307285,"forced_name":null}` | Creates an invite; expiry is Unix seconds, forced name is nullable. |
-| GET | `/api/admin/vendors` | Admin | None | Lists vendors with calculated balances.  |
+| GET | `/api/admin/vendors` | Admin | None | Lists vendors with calculated balances and email addresses.  |
 | GET | `/api/admin/balance` | Admin | None | Server wallet balance (total, unlocked, locked) and `vendor_balances`, the unpaid vendor sales it should cover. |
 | POST | `/api/admin/transfer-balance` | Admin | `{"vendor_id":1}` | Queues the selected vendor's payout to its stored subaddress. |
 | POST | `/api/admin/delete` | Admin | `{"vendor_id":1}` | Deletes the selected vendor through the vendor service. |
