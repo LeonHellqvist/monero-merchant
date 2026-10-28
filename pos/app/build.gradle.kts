@@ -15,8 +15,9 @@ android {
         applicationId = "com.moneromerchant.pos"
         minSdk = 31
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.1"
+        // Set from the tag by the release workflow
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("versionName").orNull ?: "dev"
         resValue("string", "app_name", "Monero Merchant")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -41,7 +42,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // Signed by the release workflow
         }
         // What CI builds: the release build signed with the debug key
         create("preview") {
