@@ -1,0 +1,85 @@
+name: Umbrel store sync
+
+# Mirrors umbrel/ to the community app store repo in vars.UMBREL_STORE_REPO
+on:
+  push:
+    branches: [main]
+    paths:
+      - "umbrel/**"
+      - ".github/workflows/umbrel-store-sync.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: umbrel-store-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync store
+    if: vars.UMBREL_STORE_REPO != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Holds the store app's private key. Only main can deploy to this environment
+    environment: umbrel-store
+    permissions:
+      contents: read
+    steps:
+      - name: Split store repo
+        id: store
+        env:
+          STORE: ${{ vars.UMBREL_STORE_REPO }}
+        run: |
+          echo "owner=${STORE%%/*}" >> "$GITHUB_OUTPUT"
+          echo "name=${STORE#*/}" >> "$GITHUB_OUTPUT"
+
+      # A one-hour token that can only write to the store repo
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          client-id: ${{ vars.UMBREL_STORE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UMBREL_STORE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.store.outputs.owner }}
+          repositories: ${{ steps.store.outputs.name }}
+          permission-contents: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          persist-credentials: false
+
+      # Keeps the token configured for the push below
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
+        with:
+          repository: ${{ vars.UMBREL_STORE_REPO }}
+          token: ${{ steps.app-token.outputs.token }}
+          path: store
+
+      - name: Sync and push
+        env:
+          STORE: ${{ vars.UMBREL_STORE_REPO }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_BOT: ${{ steps.app-token.outputs.app-slug }}[bot]
+        run: |
+          # The store keeps its own LICENSE
+          rsync -a --delete --exclude .git --exclude LICENSE source/umbrel/ store/
+          # Load the icon from the store itself, so a fork's store never points at upstream
+          sed -i "s|^icon: .*|icon: https://raw.githubusercontent.com/${STORE}/main/monero-merchant-app/icon.png|" \
+            store/monero-merchant-app/umbrel-app.yml
+          cd store
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Store is up to date"
+            exit 0
+          fi
+          # Commit as the app's bot user
+          git config user.name "$APP_BOT"
+          git config user.email "$(gh api "/users/${APP_BOT}" --jq .id)+${APP_BOT}@users.noreply.github.com"
+          git commit -q -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
+          git push
+          {
+            echo "### Synced ${STORE}"
+            echo
+            echo "From ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"
+          } >> "$GITHUB_STEP_SUMMARY"
