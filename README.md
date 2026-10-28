@@ -113,7 +113,7 @@ Build > Build APK(s)
 
 ```bash
 ./gradlew assembleDebug    # Debug build
-./gradlew assembleRelease  # Release build
+./gradlew assembleRelease  # Release build (unsigned)
 ```
 
 Output: `app/build/outputs/apk/`

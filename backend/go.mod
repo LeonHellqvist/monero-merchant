@@ -3,8 +3,8 @@ module github.com/monero-merchant/monero-merchant/backend
 go 1.26.10
 
 require (
-	github.com/go-chi/chi/v5 v5.3.1
-	github.com/go-chi/httprate v0.16.0
+	github.com/go-chi/chi/v5 v5.5.0
+	github.com/go-chi/httprate v0.16.1
 	github.com/icholy/digest v1.2.0
 	github.com/joho/godotenv v1.5.1
 )
@@ -32,10 +32,10 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/matoous/go-nanoid/v2 v2.1.0
-	golang.org/x/crypto v0.56.0
+	golang.org/x/crypto v0.58.0
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
-	gorm.io/driver/postgres v1.6.2
+	golang.org/x/text v0.43.0 // indirect
+	gorm.io/driver/postgres v1.6.3
 	gorm.io/gorm v1.31.2
 )
 
