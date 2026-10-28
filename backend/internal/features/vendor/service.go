@@ -35,12 +35,6 @@ const moneroSubaddressPattern = "^8[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$"
 
 var moneroSubaddressRegex = regexp.MustCompile(moneroSubaddressPattern)
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-
-func isValidEmail(email string) bool {
-	return emailRegex.MatchString(email)
-}
-
 func (s *VendorService) StartTransferCompleter(ctx context.Context, interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
@@ -260,9 +254,9 @@ func (s *VendorService) CreateVendor(ctx context.Context, name string, email str
 		return 0, models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 72 characters")
 	}
 
-	email = strings.TrimSpace(email)
-	if email != "" && !isValidEmail(email) {
-		return 0, models.NewHTTPError(http.StatusBadRequest, "invalid email address")
+	normalizedEmail, err := normalizeEmail(email)
+	if err != nil {
+		return 0, models.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	nameTaken, err := s.repo.VendorByNameExists(ctx, name)
@@ -308,7 +302,7 @@ func (s *VendorService) CreateVendor(ctx context.Context, name string, email str
 
 	vendor := &models.Vendor{
 		Name:             name,
-		Email:            email,
+		Email:            normalizedEmail,
 		PasswordHash:     string(hashedPassword),
 		MoneroSubaddress: moneroSubaddress,
 	}

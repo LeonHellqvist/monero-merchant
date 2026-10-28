@@ -152,6 +152,9 @@ async function login(username, password) {
 }
 
 async function signup(username, email, password, address, inviteCode) {
+  if (new TextEncoder().encode(email).length > 254) {
+    throw new Error('Email must be no more than 254 bytes');
+  }
   const res = await fetch(API_BASE + '/vendor/create', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

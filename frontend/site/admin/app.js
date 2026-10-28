@@ -265,8 +265,13 @@ async function fetchVendors() {
     $('vendorsWrap').replaceChildren(empty('No vendors yet. Create an invite to add one.'));
     return;
   }
-  $('vendorsWrap').replaceChildren(table(['Name', 'Payout Address', 'Balance', 'Actions'], vendors.map(v => [
+  $('vendorsWrap').replaceChildren(table(['Name', 'Email', 'Payout Address', 'Balance', 'Actions'], vendors.map(v => [
     h('td', {}, h('strong', {}, v.name)),
+    h('td', {}, v.email ? h('button', {
+      type: 'button', class: 'btn btn-ghost btn-small',
+      title: 'Click to copy email', 'aria-label': 'Copy email ' + v.email,
+      onclick: () => copy(v.email)
+    }, v.email) : ''),
     h('td', { class: 'mono', title: v.monero_subaddress }, v.monero_subaddress.slice(0, 10) + '...'),
     h('td', { class: 'mono' }, fmtXMR(v.balance)),
     h('td', { class: 'actions' },

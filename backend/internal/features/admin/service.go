@@ -21,10 +21,11 @@ type AdminService struct {
 }
 
 type VendorSummary struct {
-	ID               uint   `json:"id"`
-	Name             string `json:"name"`
-	MoneroSubaddress string `json:"monero_subaddress"`
-	Balance          int64  `json:"balance"`
+	ID               uint    `json:"id"`
+	Name             string  `json:"name"`
+	MoneroSubaddress string  `json:"monero_subaddress"`
+	Balance          int64   `json:"balance"`
+	Email            *string `json:"email"`
 }
 
 func NewAdminService(repo AdminRepository, cfg *config.Config, rpcClient *rpc.Client, vendorService *vendorfeature.VendorService) *AdminService {
