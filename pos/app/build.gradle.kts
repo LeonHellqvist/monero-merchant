@@ -15,20 +15,43 @@ android {
         applicationId = "com.moneromerchant.pos"
         minSdk = 31
         targetSdk = 34
-        versionCode = 4
-        versionName = "2.1"
+        // Set from the tag by the release workflow
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
+        versionName = providers.gradleProperty("versionName").orNull ?: "dev"
+        resValue("string", "app_name", "Monero Merchant")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        // Committed so CI builds install over each other. Never used for releases
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+        }
+    }
+
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-DEBUG"
+            resValue("string", "app_name", "Monero Merchant Debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Signed by the release workflow
+        }
+        // What CI builds: the release build signed with the debug key
+        create("preview") {
+            initWith(getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
+            val pr = providers.environmentVariable("PR_NUMBER").orNull?.ifEmpty { null }
+            applicationIdSuffix = if (pr != null) ".pr$pr" else ".preview"
+            versionNameSuffix = if (pr != null) "-pr$pr" else "-preview"
+            resValue("string", "app_name", if (pr != null) "Monero Merchant PR $pr" else "Monero Merchant Preview")
         }
     }
 
@@ -46,6 +69,7 @@ android {
     buildFeatures {
         compose = true
         aidl = true
+        resValues = true
     }
 }
 
