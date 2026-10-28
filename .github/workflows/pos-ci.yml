@@ -45,12 +45,16 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         # Preview is a release build, so this runs the release lint checks too
-        run: ./gradlew assemblePreview testDebugUnitTest
+        run: |
+          ./gradlew assemblePreview testDebugUnitTest
+          # The artifact keeps this file name, since it's uploaded without a zip
+          mv app/build/outputs/apk/preview/app-preview.apk "monero-merchant-pos-${PR_NUMBER:+pr$PR_NUMBER-}${GITHUB_SHA::7}.apk"
 
       - name: Upload preview APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: monero-merchant-pos-preview-${{ github.sha }}
-          path: pos/app/build/outputs/apk/preview/*.apk
+          path: pos/monero-merchant-pos-*.apk
+          # A plain APK can be downloaded and installed straight on a phone
+          archive: false
           if-no-files-found: error
           retention-days: 7
