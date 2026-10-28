@@ -97,7 +97,14 @@ For development, clone the repository and use the Makefile. `make install` runs 
 
 ## Install the POS App
 
-Download `monero-merchant-pos-<version>.apk` from the [latest release](https://github.com/Monero-Merchant/monero-merchant/releases/latest). `gh attestation verify <apk> --owner Monero-Merchant` checks that it was built by this repo's CI.
+Download `monero-merchant-pos-<version>.apk` from the [latest release](https://github.com/Monero-Merchant/monero-merchant/releases/latest). Releases are signed with this certificate, which you can check with [AppVerifier](https://github.com/soupslurpr/AppVerifier):
+
+```
+com.moneromerchant.pos
+0A:69:C3:F6:60:E8:12:DB:CC:99:D7:5B:47:B7:3F:F9:9E:F7:D5:2B:3A:AA:9A:58:EF:BD:3E:20:7B:D1:87:A8
+```
+
+`gh attestation verify <apk> --owner Monero-Merchant` checks that the APK was built by this repo's CI.
 
 ---
 
