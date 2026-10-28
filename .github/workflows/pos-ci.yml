@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build debug APK
+    name: Build preview APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -42,12 +42,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Build and unit test
-        run: ./gradlew assembleDebug testDebugUnitTest
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        # Preview is a release build, so this runs the release lint checks too
+        run: ./gradlew assemblePreview testDebugUnitTest
 
-      - name: Upload debug APK
+      - name: Upload preview APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: monero-merchant-pos-debug-${{ github.sha }}
-          path: pos/app/build/outputs/apk/debug/*.apk
+          name: monero-merchant-pos-preview-${{ github.sha }}
+          path: pos/app/build/outputs/apk/preview/*.apk
           if-no-files-found: error
           retention-days: 7
