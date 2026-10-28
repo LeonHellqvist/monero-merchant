@@ -1,8 +1,12 @@
 # Monero Merchant for Umbrel
 
-This folder is an [Umbrel](https://umbrel.com) community app store with one app,
-Monero Merchant. It runs the released images from this repo against the Umbrel
+An [Umbrel](https://umbrel.com) community app store with one app, Monero
+Merchant. It runs the released Monero Merchant images against the Umbrel
 **Monero** node app.
+
+The store repo is generated from the `umbrel/` folder of
+[Monero-Merchant/monero-merchant](https://github.com/Monero-Merchant/monero-merchant).
+Make changes there. CI copies them here on every push to `main`.
 
 - **Admin dashboard** at `/admin/`, behind Umbrel login plus the password Umbrel
   shows for the app.
@@ -24,9 +28,9 @@ umbrel/
 
 ## Install
 
-Install the Monero app first. A community app store has to sit at the root of a
-git repo, so copy this folder's contents into one, then add that repo's URL as a
-community app store in the Umbrel app store and install Monero Merchant.
+Install the Monero app first. Then, in the Umbrel app store, open Community App
+Stores, add `https://github.com/Monero-Merchant/umbrel-app-store` and install
+Monero Merchant.
 
 After installing, back up the wallet seed under Settings in the admin dashboard.
 
