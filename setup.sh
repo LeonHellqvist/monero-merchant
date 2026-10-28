@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd -- "$ROOT_DIR"
-MONEROPAY_REPO="https://gitlab.com/moneropay/moneropay.git"
 
 gen_secret() {
   openssl rand -hex 32
@@ -45,7 +44,6 @@ require_command() {
   }
 }
 
-require_command git
 require_command docker
 require_command openssl
 
@@ -55,10 +53,6 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 [ -f .env ] || cp example.env .env
-
-if [ ! -d "$ROOT_DIR/moneropay" ]; then
-  git clone "$MONEROPAY_REPO"
-fi
 
 # Older installs have no version in .env
 fill_if_empty "MONERO_MERCHANT_VERSION" "2"
