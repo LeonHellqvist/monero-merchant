@@ -54,11 +54,14 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
-[ -f .env ] || cp .env.example .env
+[ -f .env ] || cp example.env .env
 
 if [ ! -d "$ROOT_DIR/moneropay" ]; then
   git clone "$MONEROPAY_REPO"
 fi
+
+# Older installs have no version in .env
+fill_if_empty "MONERO_MERCHANT_VERSION" "2"
 
 # ------------------------
 # Backend database
@@ -113,4 +116,4 @@ echo "Validate your compose file with:"
 echo "  docker compose config"
 echo
 echo "Start everything with:"
-echo "  docker compose up -d --build"
+echo "  docker compose up -d"
