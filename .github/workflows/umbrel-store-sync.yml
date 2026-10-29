@@ -76,7 +76,9 @@ jobs:
           fi
           # Commit as the app's bot user
           git config user.name "$APP_BOT"
-          git config user.email "$(gh api "/users/${APP_BOT}" --jq .id)+${APP_BOT}@users.noreply.github.com"
+          # A separate assignment, so a failed lookup stops the job instead of leaving the email empty
+          bot_id="$(gh api "/users/${APP_BOT}" --jq .id)"
+          git config user.email "${bot_id}+${APP_BOT}@users.noreply.github.com"
           git commit -q -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
           git push
           {
