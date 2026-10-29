@@ -85,6 +85,14 @@ class AuthRepository @Inject constructor(
         Log.i(TAG, "DataStore cleared. Logout complete.")
     }
 
+    // Logout after the backend rejected this refresh token
+    suspend fun logoutIfCurrent(refreshToken: String) {
+        if (dataStoreRepository.clearDataStoreIfCurrent(refreshToken)) {
+            storageRepository.deleteImage("logo.png")
+            Log.i(TAG, "Refresh token rejected. Logout complete.")
+        }
+    }
+
     fun isLoggedIn(): Flow<Boolean> {
         return dataStoreRepository.getBackendAccessToken().map {it.isNotBlank() }
     }

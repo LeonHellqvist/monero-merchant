@@ -118,6 +118,14 @@ class DataStoreRepository @Inject constructor(
         dataStoreLocalDataSource.saveBackendRefreshToken(backendRefreshToken)
     }
 
+    suspend fun replaceBackendTokensIfCurrent(expectedRefreshToken: String, accessToken: String, refreshToken: String): Boolean {
+        return dataStoreLocalDataSource.replaceBackendTokensIfCurrent(expectedRefreshToken, accessToken, refreshToken)
+    }
+
+    suspend fun clearDataStoreIfCurrent(expectedRefreshToken: String): Boolean {
+        return dataStoreLocalDataSource.clearDataStoreIfCurrent(expectedRefreshToken)
+    }
+
     fun getBackendRequestInterval(): Flow<Int> {
         return dataStoreLocalDataSource.getBackendRequestInterval()
     }
