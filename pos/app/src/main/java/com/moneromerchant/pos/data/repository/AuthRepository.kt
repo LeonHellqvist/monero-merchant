@@ -27,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val jsonSerializer: Json,
-    private val dataStoreRepository: DataStoreRepository
+    private val dataStoreRepository: DataStoreRepository,
+    private val storageRepository: StorageRepository,
 ) {
 
     private val TAG = "AuthRepository"
@@ -78,8 +79,18 @@ class AuthRepository @Inject constructor(
         Log.d(TAG, "Attempting logout.")
 
         dataStoreRepository.clearDataStore()
+        // The logo is stored as a file
+        storageRepository.deleteImage("logo.png")
 
         Log.i(TAG, "DataStore cleared. Logout complete.")
+    }
+
+    // Logout after the backend rejected this refresh token
+    suspend fun logoutIfCurrent(refreshToken: String) {
+        if (dataStoreRepository.clearDataStoreIfCurrent(refreshToken)) {
+            storageRepository.deleteImage("logo.png")
+            Log.i(TAG, "Refresh token rejected. Logout complete.")
+        }
     }
 
     fun isLoggedIn(): Flow<Boolean> {

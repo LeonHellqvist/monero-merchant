@@ -22,10 +22,13 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.appendPathSegments
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking 
@@ -143,6 +146,9 @@ object BackendModule {
 
             install(Auth) {
                 bearer {
+                    // Always read tokens from DataStore so a new login is used right away
+                    cacheTokens = false
+
                     loadTokens {
                         // Load tokens from DataStore
                         val accessToken = dataStoreRepository.getBackendAccessToken().firstOrNull()
@@ -169,7 +175,7 @@ object BackendModule {
                             return@refreshTokens null
                         }
 
-                        val authTokenResponse: AuthTokenResponse? = try {
+                        val authTokenResponse: AuthTokenResponse = try {
                             val response = refreshClient.post {
                                 url {
                                     takeFrom(backendUrlForRefresh)
@@ -178,26 +184,30 @@ object BackendModule {
                                 header(HttpHeaders.ContentType, ContentType.Application.Json)
                                 setBody(mapOf("refresh_token" to currentRefreshToken))
                             }
-                            if (response.status.value in 200..299) {
-                                response.body<AuthTokenResponse>()
-                            } else {
-                                android.util.Log.e("MainKtorClientAuth", "Token refresh failed with status: ${response.status}")
-                                null
+                            if (response.status == HttpStatusCode.Unauthorized) {
+                                // Refresh token rejected, log out
+                                authRepository.logoutIfCurrent(currentRefreshToken)
+                                return@refreshTokens null
                             }
+                            if (!response.status.isSuccess()) {
+                                android.util.Log.e("MainKtorClientAuth", "Token refresh failed with status: ${response.status}")
+                                return@refreshTokens null
+                            }
+                            response.body()
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
+                            // Stay logged in on network errors
                             android.util.Log.e("MainKtorClientAuth", "Token refresh exception", e)
-                            null
+                            return@refreshTokens null
                         }
 
-                        if (authTokenResponse != null) {
-                            dataStoreRepository.saveBackendAccessToken(authTokenResponse.access_token)
-                            authTokenResponse.refresh_token.let { dataStoreRepository.saveBackendRefreshToken(it) }
-                            BearerTokens(authTokenResponse.access_token, authTokenResponse.refresh_token)
-                        } else {
-                            // Failed to refresh, clear tokens to force re-login
-                            authRepository.logout()
-                            null
-                        }
+                        val replaced = dataStoreRepository.replaceBackendTokensIfCurrent(
+                            currentRefreshToken,
+                            authTokenResponse.access_token,
+                            authTokenResponse.refresh_token,
+                        )
+                        if (replaced) BearerTokens(authTokenResponse.access_token, authTokenResponse.refresh_token) else null
                     }
                 }
             }

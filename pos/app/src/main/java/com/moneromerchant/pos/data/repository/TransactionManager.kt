@@ -19,6 +19,7 @@ import kotlin.random.Random
 class TransactionManager @Inject constructor(
     private val backendRepository: BackendRepository,
     private val dataStoreRepository: DataStoreRepository,
+    private val authRepository: AuthRepository,
     @ApplicationScope private val coroutineScope: CoroutineScope
 ) {
     // Active transaction context
@@ -33,6 +34,14 @@ class TransactionManager @Inject constructor(
         coroutineScope.launch {
             backendRepository.currentTransactionStatus.collect { status ->
                 handleTransactionStatusUpdate(status)
+            }
+        }
+        // Clear the payment on logout
+        coroutineScope.launch {
+            authRepository.isLoggedIn().distinctUntilChanged().filter { !it }.collect {
+                backendRepository.stopObservingTransactionUpdates()
+                clearCurrentTransaction()
+                clearAcceptedTransaction()
             }
         }
     }

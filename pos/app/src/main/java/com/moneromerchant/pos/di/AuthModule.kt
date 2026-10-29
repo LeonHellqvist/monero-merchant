@@ -8,6 +8,7 @@ import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
 import com.moneromerchant.pos.data.repository.AuthRepository
 import com.moneromerchant.pos.data.repository.DataStoreRepository
+import com.moneromerchant.pos.data.repository.StorageRepository
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -18,8 +19,9 @@ object AuthModule {
     @Singleton
     fun provideAuthRepository(
         jsonSerializer: Json,
-        dataStoreRepository: DataStoreRepository
+        dataStoreRepository: DataStoreRepository,
+        storageRepository: StorageRepository,
     ): AuthRepository {
-        return AuthRepository(jsonSerializer, dataStoreRepository)
+        return AuthRepository(jsonSerializer, dataStoreRepository, storageRepository)
     }
 }

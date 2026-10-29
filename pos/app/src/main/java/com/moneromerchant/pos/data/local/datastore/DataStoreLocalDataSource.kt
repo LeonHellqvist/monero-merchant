@@ -215,6 +215,30 @@ class DataStoreLocalDataSource @Inject constructor(
         }
     }
 
+    // Only applied if the refresh token hasn't changed, e.g. by a logout during a refresh
+    suspend fun replaceBackendTokensIfCurrent(expectedRefreshToken: String, accessToken: String, refreshToken: String): Boolean {
+        var replaced = false
+        context.dataStore.edit { preferences ->
+            if (preferences[BACKEND_REFRESH_TOKEN] == expectedRefreshToken) {
+                preferences[BACKEND_ACCESS_TOKEN] = accessToken
+                preferences[BACKEND_REFRESH_TOKEN] = refreshToken
+                replaced = true
+            }
+        }
+        return replaced
+    }
+
+    suspend fun clearDataStoreIfCurrent(expectedRefreshToken: String): Boolean {
+        var cleared = false
+        context.dataStore.edit { preferences ->
+            if (preferences[BACKEND_REFRESH_TOKEN] == expectedRefreshToken) {
+                preferences.clear()
+                cleared = true
+            }
+        }
+        return cleared
+    }
+
     fun getBackendRequestInterval(): Flow<Int> {
         return context.dataStore.data
             .map { preferences ->
