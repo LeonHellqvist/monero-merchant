@@ -15,15 +15,16 @@ Make changes there. CI copies them here on every push to `main`.
 
 ## Layout
 
+At the root of the store repo, and in `umbrel/` in the source repo:
+
 ```
-umbrel/
-  umbrel-app-store.yml       store id and name
-  monero-merchant-app/
-    umbrel-app.yml           app manifest
-    docker-compose.yml       gateway, frontend, backend, postgres, wallet-rpc, MoneroPay
-    exports.sh               secrets derived by Umbrel, wallet-rpc network flag
-    data/                    bind-mount folders for postgres, the wallet and MoneroPay
-    icon.png, 1.jpg..3.jpg   icon and gallery
+umbrel-app-store.yml       store id and name
+monero-merchant-app/
+  umbrel-app.yml           app manifest
+  docker-compose.yml       gateway, frontend, backend, postgres, wallet-rpc, MoneroPay
+  exports.sh               secrets derived by Umbrel, wallet-rpc network flag
+  data/                    bind-mount folders for postgres, the wallet and MoneroPay
+  icon.png, 1.jpg..3.jpg   icon and gallery
 ```
 
 ## Install

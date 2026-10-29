@@ -18,7 +18,8 @@ concurrency:
 jobs:
   sync:
     name: Sync store
-    if: vars.UMBREL_STORE_REPO != ''
+    # workflow_dispatch can run from any branch, so check the ref as well as the environment rule
+    if: vars.UMBREL_STORE_REPO != '' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Holds the store app's private key. Only main can deploy to this environment
@@ -67,6 +68,10 @@ jobs:
           # Load the icon from the store itself, so a fork's store never points at upstream
           sed -i "s|^icon: .*|icon: https://raw.githubusercontent.com/${STORE}/main/monero-merchant-app/icon.png|" \
             store/monero-merchant-app/umbrel-app.yml
+          # Same for the links in the store README
+          sed -i -e "s|https://github.com/Monero-Merchant/umbrel-app-store|${GITHUB_SERVER_URL}/${STORE}|" \
+            -e "s|\[Monero-Merchant/monero-merchant\](https://github.com/Monero-Merchant/monero-merchant)|[${GITHUB_REPOSITORY}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY})|" \
+            store/README.md
           cd store
           git add -A
           if git diff --cached --quiet; then
@@ -75,7 +80,9 @@ jobs:
           fi
           # Commit as the app's bot user
           git config user.name "$APP_BOT"
-          git config user.email "$(gh api "/users/${APP_BOT}" --jq .id)+${APP_BOT}@users.noreply.github.com"
+          # A separate assignment, so a failed lookup stops the job instead of leaving the email empty
+          bot_id="$(gh api "/users/${APP_BOT}" --jq .id)"
+          git config user.email "${bot_id}+${APP_BOT}@users.noreply.github.com"
           git commit -q -m "Sync from ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}"
           git push
           {
