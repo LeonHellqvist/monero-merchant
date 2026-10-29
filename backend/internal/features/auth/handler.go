@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -172,8 +173,13 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accessToken, refreshToken, err := h.service.RefreshToken(ctx, req.RefreshToken)
-	if err != nil {
+	if errors.Is(err, ErrInvalidRefreshToken) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		log.Printf("Token refresh failed: %v", err)
+		http.Error(w, "Failed to refresh token", http.StatusInternalServerError)
 		return
 	}
 

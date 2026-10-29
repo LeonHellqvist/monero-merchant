@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 const (
@@ -18,7 +20,10 @@ const (
 	adminRefreshTokenTTL  = 24 * time.Hour
 )
 
-var ErrInvalidCurrentPassword = errors.New("invalid current password")
+var (
+	ErrInvalidCurrentPassword = errors.New("invalid current password")
+	ErrInvalidRefreshToken    = errors.New("invalid refresh token")
+)
 
 type AuthService struct {
 	repo   AuthRepository
@@ -205,35 +210,44 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (ac
 	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired())
 
 	if err != nil || !token.Valid {
-		return "", "", errors.New("invalid refresh token")
+		return "", "", ErrInvalidRefreshToken
 	}
 
 	switch claims.Role {
 	case "admin":
 		if !utils.SecureCompare(claims.AdminStamp, s.adminStamp) {
-			return "", "", errors.New("token is outdated (server restarted)")
+			return "", "", fmt.Errorf("%w: server restarted", ErrInvalidRefreshToken)
 		}
 		return s.generateAdminToken()
 	case "vendor":
 		vendor, err := s.repo.FindVendorByID(ctx, claims.VendorID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", fmt.Errorf("%w: vendor not found", ErrInvalidRefreshToken)
+		}
 		if err != nil {
-			return "", "", errors.New("invalid credentials")
+			return "", "", err
 		}
 		if vendor.PasswordVersion != claims.PasswordVersion {
-			return "", "", errors.New("token is outdated (password changed)")
+			return "", "", fmt.Errorf("%w: password changed", ErrInvalidRefreshToken)
 		}
 		return s.generateVendorToken(claims.VendorID, claims.PasswordVersion)
 	case "pos":
 		pos, err := s.repo.FindPosByID(ctx, claims.PosID)
-		if err != nil || pos.VendorID != claims.VendorID {
-			return "", "", errors.New("invalid credentials")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", fmt.Errorf("%w: pos not found", ErrInvalidRefreshToken)
+		}
+		if err != nil {
+			return "", "", err
+		}
+		if pos.VendorID != claims.VendorID {
+			return "", "", fmt.Errorf("%w: pos belongs to another vendor", ErrInvalidRefreshToken)
 		}
 		if pos.PasswordVersion != claims.PasswordVersion {
-			return "", "", errors.New("token is outdated (password changed)")
+			return "", "", fmt.Errorf("%w: password changed", ErrInvalidRefreshToken)
 		}
 		return s.generatePosToken(claims.VendorID, claims.PosID, claims.PasswordVersion)
 	default:
-		return "", "", errors.New("invalid role in token")
+		return "", "", fmt.Errorf("%w: unknown role", ErrInvalidRefreshToken)
 	}
 }
 
