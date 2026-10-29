@@ -136,11 +136,7 @@ function setTokens(access, refreshToken) {
 function logout() {
   auth = { access: null, refresh: null };
   try { localStorage.removeItem('mm_admin_refresh'); } catch (e) {}
-  clearSeed();
-  $('topNav').classList.add('hidden');
-  $('appScreen').classList.add('hidden');
-  $('loginBg').classList.remove('hidden');
-  $('loginPass').value = '';
+  location.replace(location.pathname);
 }
 
 async function login(e) {
