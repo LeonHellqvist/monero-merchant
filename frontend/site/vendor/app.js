@@ -456,8 +456,8 @@ async function renderDashboard(container, headerActions) {
   const withdrawBtn = document.createElement('button');
   withdrawBtn.className = 'btn btn-primary';
   withdrawBtn.textContent = 'Initiate Withdrawal';
-  withdrawBtn.disabled = balanceData.balance < 3000000;
-  if (balanceData.balance < 3000000) {
+  withdrawBtn.disabled = balanceData.balance < 3000000000;
+  if (balanceData.balance < 3000000000) {
     withdrawBtn.title = 'Minimum balance of 0.003 XMR required';
   }
   withdrawBtn.addEventListener('click', async () => {
