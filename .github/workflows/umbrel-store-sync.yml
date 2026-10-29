@@ -18,7 +18,8 @@ concurrency:
 jobs:
   sync:
     name: Sync store
-    if: vars.UMBREL_STORE_REPO != ''
+    # workflow_dispatch can run from any branch, so check the ref as well as the environment rule
+    if: vars.UMBREL_STORE_REPO != '' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Holds the store app's private key. Only main can deploy to this environment
