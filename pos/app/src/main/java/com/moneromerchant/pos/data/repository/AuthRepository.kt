@@ -27,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepository @Inject constructor(
     private val jsonSerializer: Json,
-    private val dataStoreRepository: DataStoreRepository
+    private val dataStoreRepository: DataStoreRepository,
+    private val storageRepository: StorageRepository,
 ) {
 
     private val TAG = "AuthRepository"
@@ -78,6 +79,8 @@ class AuthRepository @Inject constructor(
         Log.d(TAG, "Attempting logout.")
 
         dataStoreRepository.clearDataStore()
+        // The logo is stored as a file
+        storageRepository.deleteImage("logo.png")
 
         Log.i(TAG, "DataStore cleared. Logout complete.")
     }
