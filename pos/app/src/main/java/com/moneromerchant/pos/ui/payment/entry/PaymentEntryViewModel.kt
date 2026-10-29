@@ -33,6 +33,8 @@ class PaymentEntryViewModel @Inject constructor(
     var primaryFiatCurrency by mutableStateOf("")
     var paymentValue by mutableStateOf("0")
     var exchangeRate: Double? by mutableStateOf(null)
+    var rateSources by mutableStateOf(listOf<String>())
+    var ratesStale by mutableStateOf(false)
 
     var openSettingsPinCodeDialog by mutableStateOf(false)
     var requirePinCodeOpenSettings by mutableStateOf(true)
@@ -69,9 +71,11 @@ class PaymentEntryViewModel @Inject constructor(
                         errorMessage = exchangeRateResponse.message
                     }
                     is DataResult.Success -> {
-                        val rate = exchangeRateResponse.data.values.firstOrNull()
+                        val rate = exchangeRateResponse.data.rates.values.firstOrNull()
                         if (rate != null) {
                             exchangeRate = rate
+                            rateSources = exchangeRateResponse.data.sources
+                            ratesStale = exchangeRateResponse.data.stale
                             errorMessage = ""
                         } else {
                             errorMessage = "Missing exchange rate"

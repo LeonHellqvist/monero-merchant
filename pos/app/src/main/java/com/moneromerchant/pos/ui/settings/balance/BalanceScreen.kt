@@ -19,6 +19,7 @@ import androidx.navigation.NavHostController
 import com.moneromerchant.pos.data.remote.backend.model.BackendBalancePosResponse
 import com.moneromerchant.pos.shared.DataResult
 import com.moneromerchant.pos.ui.common.composables.FiatCard
+import com.moneromerchant.pos.ui.common.composables.RateSourceNote
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -31,6 +32,8 @@ fun BalanceScreenRoot(viewModel: BalanceViewModel, navController: NavHostControl
         posBalance = viewModel.posBalance,
         primaryFiatCurrency = viewModel.primaryFiatCurrency,
         exchangeRate = viewModel.exchangeRate,
+        rateSources = viewModel.rateSources,
+        ratesStale = viewModel.ratesStale,
     )
 }
 
@@ -41,6 +44,8 @@ fun BalanceScreen(
     posBalance: DataResult<BackendBalancePosResponse>?,
     primaryFiatCurrency: String,
     exchangeRate: Double?,
+    rateSources: List<String>,
+    ratesStale: Boolean,
 ) {
     Scaffold { innerPadding ->
         Column (
@@ -65,6 +70,8 @@ fun BalanceScreen(
                             RoundingMode.HALF_UP).toPlainString(),
                         xmrValue = xmrBalance,
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RateSourceNote(rateSources, ratesStale)
                 }
 
                 is DataResult.Failure -> {

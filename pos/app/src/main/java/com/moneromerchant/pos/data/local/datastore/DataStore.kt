@@ -3,7 +3,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 
@@ -36,5 +35,3 @@ val PRINTER_CHARSET_ENCODING: Preferences.Key<String> = stringPreferencesKey("pr
 val PRINTER_CHARSET_ID: Preferences.Key<Int> = intPreferencesKey("printer_charset_id")
 val PRINTER_ADDRESS: Preferences.Key<String> = stringPreferencesKey("printer_address")
 val PRINTER_PORT: Preferences.Key<Int> = intPreferencesKey("printer_port")
-val EXCHANGE_RATES_CACHE: Preferences.Key<String> = stringPreferencesKey("exchange_rates_cache")
-val EXCHANGE_RATES_LAST_UPDATED: Preferences.Key<Long> = longPreferencesKey("exchange_rates_last_updated")

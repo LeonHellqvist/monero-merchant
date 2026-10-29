@@ -41,6 +41,8 @@ class BalanceViewModel @Inject constructor(
     var primaryFiatCurrency by mutableStateOf("")
 
     var exchangeRate by mutableDoubleStateOf(0.0)
+    var rateSources by mutableStateOf(listOf<String>())
+    var ratesStale by mutableStateOf(false)
 
 
     init {
@@ -50,10 +52,13 @@ class BalanceViewModel @Inject constructor(
         viewModelScope.launch {
             val primaryFiatCurrencyResponse = exchangeRateRepository.getPrimaryFiatCurrency().first()
             primaryFiatCurrency = primaryFiatCurrencyResponse
-            val exchangeRateResponse = exchangeRateRepository.fetchPrimaryExchangeRate().first()
-            exchangeRate = when (exchangeRateResponse) {
-                is DataResult.Failure -> 0.0
-                is DataResult.Success -> exchangeRateResponse.data.values.first()
+            when (val exchangeRateResponse = exchangeRateRepository.fetchPrimaryExchangeRate().first()) {
+                is DataResult.Failure -> exchangeRate = 0.0
+                is DataResult.Success -> {
+                    exchangeRate = exchangeRateResponse.data.rates.values.first()
+                    rateSources = exchangeRateResponse.data.sources
+                    ratesStale = exchangeRateResponse.data.stale
+                }
             }
         }
     }
