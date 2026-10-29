@@ -23,12 +23,14 @@ type VendorRepository interface {
 	GetAllTransferableTransactions(ctx context.Context, vendorID uint) ([]*models.Transaction, error)
 	CreateTransfer(ctx context.Context, transfer *models.Transfer) error
 	GetTransfersToComplete(ctx context.Context, limit int) ([]*models.Transfer, error)
-	MarkTransactionsTransferred(ctx context.Context, tx *gorm.DB, transferID uint, transactionIDs []uint) error
-	SetTransferTx(ctx context.Context, tx *gorm.DB, transferID uint, amountTransferred int64, txHash string, txMetadata string) error
+	MarkTransactionsTransferred(ctx context.Context, transferID uint, transactionIDs []uint) error
+	SetTransferTx(ctx context.Context, transferID uint, amountTransferred int64, txHash string, txMetadata string) error
 	GetUnrelayedTransfers(ctx context.Context) ([]*models.Transfer, error)
 	MarkTransfersCompleted(ctx context.Context, txHash string) error
 	GetPosDevicesByVendorID(ctx context.Context, vendorID uint) ([]*models.Pos, error)
 	FindTransactionsByVendorID(ctx context.Context, vendorID uint) ([]*models.Transaction, error)
+	// WithTransaction runs fn with a repository whose writes commit together, or roll back if fn returns an error
+	WithTransaction(ctx context.Context, fn func(VendorRepository) error) error
 }
 
 type vendorRepository struct {
@@ -197,11 +199,11 @@ func (r *vendorRepository) GetTransfersToComplete(ctx context.Context, limit int
 	return transfers, nil
 }
 
-func (r *vendorRepository) MarkTransactionsTransferred(ctx context.Context, tx *gorm.DB, transferID uint, transactionIDs []uint) error {
+func (r *vendorRepository) MarkTransactionsTransferred(ctx context.Context, transferID uint, transactionIDs []uint) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return tx.WithContext(ctx).Model(&models.Transaction{}).
+	return r.db.WithContext(ctx).Model(&models.Transaction{}).
 		Where("id IN ?", transactionIDs).
 		Updates(map[string]interface{}{
 			"transferred": true,
@@ -209,8 +211,8 @@ func (r *vendorRepository) MarkTransactionsTransferred(ctx context.Context, tx *
 		}).Error
 }
 
-func (r *vendorRepository) SetTransferTx(ctx context.Context, tx *gorm.DB, transferID uint, amountTransferred int64, txHash string, txMetadata string) error {
-	return tx.WithContext(ctx).Model(&models.Transfer{}).
+func (r *vendorRepository) SetTransferTx(ctx context.Context, transferID uint, amountTransferred int64, txHash string, txMetadata string) error {
+	return r.db.WithContext(ctx).Model(&models.Transfer{}).
 		Where("id = ?", transferID).
 		Updates(map[string]interface{}{
 			"tx_hash":            txHash,
@@ -264,4 +266,10 @@ func (r *vendorRepository) FindTransactionsByVendorID(ctx context.Context, vendo
 		return nil, err
 	}
 	return transactions, nil
+}
+
+func (r *vendorRepository) WithTransaction(ctx context.Context, fn func(VendorRepository) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(&vendorRepository{db: tx})
+	})
 }

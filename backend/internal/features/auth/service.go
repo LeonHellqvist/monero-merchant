@@ -11,7 +11,6 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 const (
@@ -221,7 +220,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (ac
 		return s.generateAdminToken()
 	case "vendor":
 		vendor, err := s.repo.FindVendorByID(ctx, claims.VendorID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			return "", "", fmt.Errorf("%w: vendor not found", ErrInvalidRefreshToken)
 		}
 		if err != nil {
@@ -233,7 +232,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (ac
 		return s.generateVendorToken(claims.VendorID, claims.PasswordVersion)
 	case "pos":
 		pos, err := s.repo.FindPosByID(ctx, claims.PosID)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			return "", "", fmt.Errorf("%w: pos not found", ErrInvalidRefreshToken)
 		}
 		if err != nil {
