@@ -143,6 +143,9 @@ object BackendModule {
 
             install(Auth) {
                 bearer {
+                    // Always read tokens from DataStore so a new login is used right away
+                    cacheTokens = false
+
                     loadTokens {
                         // Load tokens from DataStore
                         val accessToken = dataStoreRepository.getBackendAccessToken().firstOrNull()
