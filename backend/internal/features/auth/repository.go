@@ -2,10 +2,14 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
 	"gorm.io/gorm"
 )
+
+// ErrNotFound is returned by the Find functions when nothing matches
+var ErrNotFound = errors.New("not found")
 
 type AuthRepository interface {
 	FindPosByVendorIDAndName(ctx context.Context, vendorID uint, name string) (*models.Pos, error)
@@ -30,7 +34,7 @@ func (r *authRepository) FindPosByVendorIDAndName(ctx context.Context, vendorID 
 	}
 	var pos models.Pos
 	if err := r.db.WithContext(ctx).Where("vendor_id = ? AND name = ?", vendorID, name).First(&pos).Error; err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return &pos, nil
 }
@@ -41,7 +45,7 @@ func (r *authRepository) FindVendorByName(ctx context.Context, name string) (*mo
 	}
 	var vendor models.Vendor
 	if err := r.db.WithContext(ctx).Where("name = ?", name).First(&vendor).Error; err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return &vendor, nil
 }
@@ -52,7 +56,7 @@ func (r *authRepository) FindVendorByID(ctx context.Context, id uint) (*models.V
 	}
 	var vendor models.Vendor
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&vendor).Error; err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return &vendor, nil
 }
@@ -63,7 +67,7 @@ func (r *authRepository) FindPosByID(ctx context.Context, id uint) (*models.Pos,
 	}
 	var pos models.Pos
 	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&pos).Error; err != nil {
-		return nil, err
+		return nil, notFound(err)
 	}
 	return &pos, nil
 }
@@ -112,4 +116,11 @@ func (r *authRepository) UpdatePosPasswordHash(ctx context.Context, posID uint, 
 		return 0, err
 	}
 	return pos.PasswordVersion, nil
+}
+
+func notFound(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotFound
+	}
+	return err
 }
