@@ -14,7 +14,7 @@ android {
     defaultConfig {
         applicationId = "com.moneromerchant.pos"
         minSdk = 31
-        targetSdk = 34
+        targetSdk = 37
         // Set from the tag by the release workflow
         versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 1
         versionName = providers.gradleProperty("versionName").orNull ?: "dev"
