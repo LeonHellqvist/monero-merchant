@@ -129,7 +129,7 @@ function loadAuth() {
 function logout() {
   auth = { accessToken: null, refreshToken: null, vendorName: null, vendorId: null };
   localStorage.removeItem('mm_vendor_auth');
-  showLoginScreen();
+  location.replace(location.pathname);
 }
 
 async function login(username, password) {
