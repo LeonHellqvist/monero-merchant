@@ -55,6 +55,8 @@ class PaymentCheckoutViewModel @Inject constructor(
     var primaryFiatCurrency by mutableStateOf("")
     var referenceFiatCurrencies by mutableStateOf(listOf<String>())
     var exchangeRates: Map<String, Double>? by mutableStateOf(null)
+    var rateSources by mutableStateOf(listOf<String>())
+    var ratesStale by mutableStateOf(false)
     var targetXMRvalue by mutableStateOf(BigDecimal.ZERO)
 
     var qrCodeUri by mutableStateOf("")
@@ -94,7 +96,9 @@ class PaymentCheckoutViewModel @Inject constructor(
                         targetXMRvalue = BigDecimal.ZERO
                     }
                     is DataResult.Success -> {
-                        exchangeRates = exchangeRatesResponse.data
+                        exchangeRates = exchangeRatesResponse.data.rates
+                        rateSources = exchangeRatesResponse.data.sources
+                        ratesStale = exchangeRatesResponse.data.stale
                         errorMessage = ""
                         recalculateTargetAmount()
                         Log.i(logTag, "Reference exchange rates: $referenceFiatCurrencies")

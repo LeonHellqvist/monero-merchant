@@ -22,10 +22,13 @@ class ExchangeRateRepository @Inject constructor(
 
     private val logTag = "ExchangeRateRepository"
 
+    @Volatile private var cached: ExchangeRateResponse? = null
+    @Volatile private var cachedAt = 0L
+
     fun fetchPrimaryExchangeRate(): Flow<DataResult<ExchangeRateResponse>> = flow {
         val primaryFiatCurrency = dataStoreLocalDataSource.getPrimaryFiatCurrency().first()
         if (primaryFiatCurrency.isBlank()) {
-            emit(DataResult.Success(emptyMap()))
+            emit(DataResult.Success(ExchangeRateResponse(emptyMap(), emptyList(), false)))
             return@flow
         }
 
@@ -35,7 +38,7 @@ class ExchangeRateRepository @Inject constructor(
     fun fetchReferenceExchangeRates(): Flow<DataResult<ExchangeRateResponse>> = flow {
         val referenceFiatCurrencies = dataStoreLocalDataSource.getReferenceFiatCurrencies().first().distinct()
         if (referenceFiatCurrencies.isEmpty()) {
-            emit(DataResult.Success(emptyMap()))
+            emit(DataResult.Success(ExchangeRateResponse(emptyMap(), emptyList(), false)))
             return@flow
         }
 
@@ -45,7 +48,7 @@ class ExchangeRateRepository @Inject constructor(
     fun fetchExchangeRates(): Flow<DataResult<ExchangeRateResponse>> = flow {
         val fiatCurrencies = dataStoreLocalDataSource.getFiatCurrencies().first().distinct()
         if (fiatCurrencies.isEmpty()) {
-            emit(DataResult.Success(emptyMap()))
+            emit(DataResult.Success(ExchangeRateResponse(emptyMap(), emptyList(), false)))
             return@flow
         }
 
@@ -69,12 +72,9 @@ class ExchangeRateRepository @Inject constructor(
 
     private suspend fun ratesFor(fiatCurrencies: List<String>): DataResult<ExchangeRateResponse> {
         val now = System.currentTimeMillis()
-        val cachedRates = dataStoreLocalDataSource.getCachedExchangeRates().first()
-        val lastUpdated = dataStoreLocalDataSource.getExchangeRatesLastUpdated().first()
-
-        val cachedSubset = cachedRates.filterKeys { it in fiatCurrencies }
-        if (cachedSubset.size == fiatCurrencies.size && now - lastUpdated in 0 until CACHE_DURATION_MS) {
-            return DataResult.Success(cachedSubset)
+        val cache = cached
+        if (cache != null && fiatCurrencies.all { it in cache.rates } && now - cachedAt in 0 until CACHE_DURATION_MS) {
+            return DataResult.Success(cache.copy(rates = cache.rates.filterKeys { it in fiatCurrencies }))
         }
 
         // Fetch every selected currency at once so primary and reference rates share one cache
@@ -85,13 +85,13 @@ class ExchangeRateRepository @Inject constructor(
         return when (val response = backendRemoteDataSource.fetchRates(selected)) {
             is DataResult.Success -> {
                 val rates = response.data.rates.mapValues { it.value.rate }
-                dataStoreLocalDataSource.saveCachedExchangeRates(rates)
-                dataStoreLocalDataSource.saveExchangeRatesLastUpdated(now)
-                DataResult.Success(rates.filterKeys { it in fiatCurrencies })
+                cached = ExchangeRateResponse(rates, response.data.sources, response.data.stale)
+                cachedAt = now
+                DataResult.Success(ExchangeRateResponse(rates.filterKeys { it in fiatCurrencies }, response.data.sources, response.data.stale))
             }
             is DataResult.Failure -> {
                 Log.w(logTag, "Failed to refresh exchange rates: ${response.message}")
-                if (cachedSubset.isNotEmpty()) DataResult.Success(cachedSubset) else response
+                response
             }
         }
     }

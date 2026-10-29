@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class BackendRatesResponse(
     val base: String,
-    val source: String,
+    val sources: List<String>,
     @SerialName("xmr_updated_at")
     val xmrUpdatedAt: String,
     val stale: Boolean,

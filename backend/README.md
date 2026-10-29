@@ -207,7 +207,7 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | POST | `/api/vendor/delete` | Vendor | None | Deletes the authenticated vendor. The Yaak example's `vendor_id` body is not read. |
 | GET | `/api/misc/health` | None | None | Reports PostgreSQL and MoneroPay health. |
 | GET | `/api/misc/daemon-status` | None | None | Reports the configured Monero daemon: `synced`, `height`, `target_height`, `nettype` and connection counts. `status` is 503 when no daemon is configured or it is unreachable. |
-| GET | `/api/rates?currencies=EUR,CHF` | Admin, vendor or POS | None | XMR price in each requested currency as `{rate, date}`, plus `xmr_updated_at` and `stale` (price older than 30 min). 400 for an unsupported currency, 503 if the rates can't be fetched yet. |
+| GET | `/api/rates?currencies=EUR,CHF` | Admin, vendor or POS | None | XMR price in each requested currency as `{rate, date}`, plus `sources` (CoinPaprika, and Frankfurter for non-EUR currencies; show these as credit), `xmr_updated_at` and `stale` (price older than 30 min). 400 for an unsupported currency, 503 if the rates can't be fetched yet. |
 | GET | `/api/rates/currencies` | Admin, vendor or POS | None | Lists the supported currencies. |
 | POST | `/api/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
 | POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |

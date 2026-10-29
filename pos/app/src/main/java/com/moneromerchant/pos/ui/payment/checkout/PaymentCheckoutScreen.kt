@@ -21,6 +21,7 @@ import com.moneromerchant.pos.R
 import com.moneromerchant.pos.ui.PaymentSuccess
 import com.moneromerchant.pos.ui.common.composables.CustomAlertDialog
 import com.moneromerchant.pos.ui.common.composables.FiatCard
+import com.moneromerchant.pos.ui.common.composables.RateSourceNote
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -36,6 +37,8 @@ fun PaymentCheckoutScreenRoot(viewModel: PaymentCheckoutViewModel, navController
         primaryFiatCurrency = primaryFiatCurrency,
         referenceFiatCurrencies = viewModel.referenceFiatCurrencies,
         exchangeRates = viewModel.exchangeRates,
+        rateSources = viewModel.rateSources,
+        ratesStale = viewModel.ratesStale,
         targetXMRvalue = viewModel.targetXMRvalue,
         qrCodeUri = viewModel.qrCodeUri,
         generateQRCode = viewModel::generateQRCode,
@@ -52,6 +55,8 @@ fun PaymentCheckoutScreen(
     primaryFiatCurrency: String,
     referenceFiatCurrencies: List<String>,
     exchangeRates: Map<String, Double>?,
+    rateSources: List<String>,
+    ratesStale: Boolean,
     targetXMRvalue: BigDecimal,
     qrCodeUri: String,
     generateQRCode: (String, Int, Int, Int, Int, Int) -> Bitmap,
@@ -76,6 +81,8 @@ fun PaymentCheckoutScreen(
             FiatCard("Total Amount", primaryFiatCurrency, exchangeRates?.get(primaryFiatCurrency), paymentValue.toString(), xmrValue = targetXMRvalue)
             Spacer(modifier = Modifier.height(16.dp))
             ReferenceCurrenciesCard(referenceFiatCurrencies, exchangeRates, targetXMRvalue)
+            Spacer(modifier = Modifier.height(8.dp))
+            RateSourceNote(rateSources, ratesStale)
             Spacer(modifier = Modifier.height(16.dp))
             if (errorMessage.isNotEmpty()) {
                 Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)

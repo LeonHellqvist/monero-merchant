@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import com.moneromerchant.pos.R
 import com.moneromerchant.pos.ui.common.composables.CustomAlertDialog
 import com.moneromerchant.pos.ui.common.composables.CustomOutlinedTextField
+import com.moneromerchant.pos.ui.common.composables.RateSourceNote
 import java.math.RoundingMode
 
 // PaymentEntryScreenRoot
@@ -46,6 +47,8 @@ fun PaymentEntryScreenRoot(viewModel: PaymentEntryViewModel, navController: NavH
         paymentValue = viewModel.paymentValue,
         primaryFiatCurrency = viewModel.primaryFiatCurrency,
         exchangeRate = viewModel.exchangeRate,
+        rateSources = viewModel.rateSources,
+        ratesStale = viewModel.ratesStale,
         onDigitClick = viewModel::addDigit,
         onBackspaceClick = viewModel::removeDigit,
         onClearClick = viewModel::clear,
@@ -66,6 +69,8 @@ fun PaymentEntryScreen(
     paymentValue: String,
     primaryFiatCurrency: String,
     exchangeRate: Double?,
+    rateSources: List<String>,
+    ratesStale: Boolean,
     onDigitClick: (String) -> Unit,
     onBackspaceClick: () -> Unit,
     onClearClick: () -> Unit,
@@ -118,6 +123,8 @@ fun PaymentEntryScreen(
                         ).toPlainString(),
                         emphasize = true,
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    RateSourceNote(rateSources, ratesStale, modifier = Modifier.fillMaxWidth())
                 }
                 Column(
                     verticalArrangement = Arrangement.Bottom,

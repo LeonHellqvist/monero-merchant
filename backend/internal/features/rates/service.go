@@ -37,7 +37,7 @@ type Rate struct {
 
 type Rates struct {
 	Base         string          `json:"base"`
-	Source       string          `json:"source"`
+	Sources      []string        `json:"sources"`
 	XMRUpdatedAt time.Time       `json:"xmr_updated_at"`
 	Stale        bool            `json:"stale"`
 	Rates        map[string]Rate `json:"rates"`
@@ -94,7 +94,7 @@ func (s *RatesService) GetRates(ctx context.Context, currencies []string) (*Rate
 
 	resp := &Rates{
 		Base:         "XMR",
-		Source:       "CoinPaprika",
+		Sources:      []string{"CoinPaprika"},
 		XMRUpdatedAt: price.UpdatedAt,
 		Stale:        time.Since(price.UpdatedAt) > staleAfter,
 		Rates:        make(map[string]Rate, len(currencies)),
@@ -110,6 +110,7 @@ func (s *RatesService) GetRates(ctx context.Context, currencies []string) (*Rate
 			if fiat, ok = s.fiat.get(ctx); !ok {
 				return nil, ErrUnavailable
 			}
+			resp.Sources = append(resp.Sources, "Frankfurter")
 		}
 		rate, ok := fiat[c]
 		if !ok {
