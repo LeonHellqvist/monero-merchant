@@ -41,7 +41,7 @@ func TestRegistrationEmail(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &registrationRepository{}
-			service := NewVendorService(repo, nil, nil, nil)
+			service := NewVendorService(repo, nil, nil)
 			_, httpErr := service.CreateVendor(context.Background(), "Store", tc.input, "password123", "invite", "81"+strings.Repeat("1", 93))
 			if tc.invalid {
 				if httpErr == nil || httpErr.Code != 400 || repo.saved != nil {

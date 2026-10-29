@@ -16,19 +16,17 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/rpc"
 	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type VendorService struct {
 	repo      VendorRepository
-	db        *gorm.DB
 	config    *config.Config
 	rpcClient *rpc.Client
 	mu        sync.Mutex
 }
 
-func NewVendorService(repo VendorRepository, db *gorm.DB, cfg *config.Config, rpcClient *rpc.Client) *VendorService {
-	return &VendorService{repo: repo, db: db, config: cfg, rpcClient: rpcClient}
+func NewVendorService(repo VendorRepository, cfg *config.Config, rpcClient *rpc.Client) *VendorService {
+	return &VendorService{repo: repo, config: cfg, rpcClient: rpcClient}
 }
 
 const moneroSubaddressPattern = "^8[0-9AB][1-9A-HJ-NP-Za-km-z]{93}$"
@@ -56,6 +54,11 @@ func (s *VendorService) StartTransferCompleter(ctx context.Context, interval tim
 func (s *VendorService) completeTransfers(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Completing transfers panicked: %v", r)
+		}
+	}()
 
 	// A new tx could spend the same outputs as an unrelayed one
 	if !s.relayPendingTransfers(ctx) {
@@ -68,39 +71,27 @@ func (s *VendorService) completeTransfers(ctx context.Context) {
 
 	// For loop to try and complete transfers
 	for i := 15; i > 0; i-- {
-		dbTx := s.db.Begin()
-		var batchErr error
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					_ = dbTx.Rollback()
-				}
-			}()
-			// fetch a safe number of transfers to complete
-			transfers, err := s.repo.GetTransfersToComplete(ctx, i)
-			if err != nil || transfers == nil {
-				log.Println("Error fetching transfers to complete:", err)
-				batchErr = err
-				_ = dbTx.Rollback()
-				return
-			}
+		// fetch a safe number of transfers to complete
+		transfers, err := s.repo.GetTransfersToComplete(ctx, i)
+		if err != nil {
+			log.Println("Error fetching transfers to complete:", err)
+			return
+		}
+		if len(transfers) == 0 {
+			return
+		}
 
-			if len(transfers) == 0 {
-				_ = dbTx.Rollback()
-				return
-			}
-
-			// Mark transactions as transferred
+		var txHash, metadata string
+		buildFailed := false
+		// Save the tx before relaying it, so a failed relay is retried with the same tx instead of paying again
+		err = s.repo.WithTransaction(ctx, func(repo VendorRepository) error {
 			for _, transfer := range transfers {
 				transactionIDs := []uint{}
 				for _, tx := range transfer.Transactions {
 					transactionIDs = append(transactionIDs, tx.ID)
 				}
-				if err := s.repo.MarkTransactionsTransferred(ctx, dbTx, transfer.ID, transactionIDs); err != nil {
-					log.Printf("Error marking transactions as transferred: %v", err)
-					batchErr = err
-					_ = dbTx.Rollback()
-					return
+				if err := repo.MarkTransactionsTransferred(ctx, transfer.ID, transactionIDs); err != nil {
+					return fmt.Errorf("marking transactions as transferred: %w", err)
 				}
 			}
 
@@ -112,12 +103,10 @@ func (s *VendorService) completeTransfers(ctx context.Context) {
 				}
 			}
 
-			txHash, metadata, amounts, err := s.buildTransfer(ctx, destinations)
+			hash, meta, amounts, err := s.buildTransfer(ctx, destinations)
 			if err != nil {
-				// Possibly too big for one tx, try a smaller batch
-				log.Printf("Building transfer of %d payouts failed: %v", len(transfers), err)
-				_ = dbTx.Rollback()
-				return
+				buildFailed = true
+				return err
 			}
 
 			for index, transfer := range transfers {
@@ -125,31 +114,29 @@ func (s *VendorService) completeTransfers(ctx context.Context) {
 				if len(amounts) > index && amounts[index] != 0 {
 					amountTransferred = amounts[index]
 				}
-				if err := s.repo.SetTransferTx(ctx, dbTx, transfer.ID, amountTransferred, txHash, metadata); err != nil {
-					log.Println("Error saving transfer tx:", err)
-					batchErr = err
-					_ = dbTx.Rollback()
-					return
+				if err := repo.SetTransferTx(ctx, transfer.ID, amountTransferred, hash, meta); err != nil {
+					return fmt.Errorf("saving transfer tx: %w", err)
 				}
 			}
-			// Save the tx before relaying it, so a failed relay is retried with the same tx instead of paying again
-			if err := dbTx.Commit().Error; err != nil {
-				log.Println("Error committing transaction:", err)
-				batchErr = err
-				return
-			}
-			if err := s.relayTransfer(ctx, txHash, metadata); err != nil {
-				log.Printf("Relaying transfer %s failed: %v", txHash, err)
-				batchErr = err
-				return
-			}
-			log.Println("Transfer completed successfully")
-		}() // end per-iteration scope
-		if batchErr != nil {
-			break
+			txHash, metadata = hash, meta
+			return nil
+		})
+		if buildFailed {
+			// Possibly too big for one tx, try a smaller batch
+			log.Printf("Building transfer of %d payouts failed: %v", len(transfers), err)
+			continue
 		}
-	}
+		if err != nil {
+			log.Println("Error saving transfer:", err)
+			return
+		}
 
+		if err := s.relayTransfer(ctx, txHash, metadata); err != nil {
+			log.Printf("Relaying transfer %s failed: %v", txHash, err)
+			return
+		}
+		log.Println("Transfer completed successfully")
+	}
 }
 
 // buildTransfer creates the tx without relaying it

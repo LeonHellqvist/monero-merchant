@@ -71,7 +71,7 @@ func NewRouter(ctx context.Context, cfg *config.Config, db *gorm.DB, rpcClient *
 	miscRepository := misc.NewMiscRepository(db)
 
 	// Initialize services
-	vendorService := vendor.NewVendorService(vendorRepository, db, cfg, rpcClient)
+	vendorService := vendor.NewVendorService(vendorRepository, cfg, rpcClient)
 	vendorService.StartTransferCompleter(ctx, 30*time.Second) // Check every 30 seconds
 	adminService := admin.NewAdminService(adminRepository, cfg, rpcClient, vendorService)
 	authService := auth.NewAuthService(authRepository, cfg)
