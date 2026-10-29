@@ -210,7 +210,7 @@ All endpoints are under `/api` on your backend origin. Admin/vendor/POS authenti
 | GET | `/api/rates?currencies=EUR,CHF` | Admin, vendor or POS | None | XMR price in each requested currency as `{rate, date}`, plus `sources` (CoinPaprika, and Frankfurter for non-EUR currencies; show these as credit), `xmr_updated_at` and `stale` (price older than 30 min). 400 for an unsupported currency, 503 if the rates can't be fetched yet. |
 | GET | `/api/rates/currencies` | Admin, vendor or POS | None | Lists the supported currencies. |
 | POST | `/api/auth/login-pos` | None | `{"vendor_id":1,"name":"<pos-name>","password":"<pos-password>"}` | Returns access and refresh tokens. |
-| POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. |
+| POST | `/api/auth/refresh` | Refresh token in body | `{"refresh_token":"<refresh-token>"}` | Returns replacement access and refresh tokens. 401 if the token is invalid, expired or outdated, 500 if it can't be checked right now. |
 | POST | `/api/pos/create-transaction` | POS | JSON `amount` (atomic units), `description` (nullable), `amount_in_currency`, `currency`, `required_confirmations` (0–10). | Returns sale ID and receive address. |
 | GET | `/api/pos/transaction/{id}` | POS | None | Reads a sale belonging to the authenticated vendor and POS. |
 | GET | `/api/pos/transactions` | POS | None | Lists own confirmed payment summaries and pending sales. |
