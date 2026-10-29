@@ -457,7 +457,7 @@ func (s *VendorService) CreateTransfer(ctx context.Context, vendorID uint) *mode
 	}
 
 	// Do not allow withdrawals of less than 0.003 XMR as the fee is too high
-	if totalAmount < 3000000 {
+	if totalAmount < 3000000000 {
 		return models.NewHTTPError(http.StatusBadRequest, "Minimum transfer amount is 0.003 XMR")
 	}
 
