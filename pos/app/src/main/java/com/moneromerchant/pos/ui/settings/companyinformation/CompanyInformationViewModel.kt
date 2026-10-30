@@ -3,7 +3,6 @@ package com.moneromerchant.pos.ui.settings.companyinformation
 
 import android.content.Context
 import android.net.Uri
-import com.moneromerchant.pos.shared.TransactionDescription
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import com.moneromerchant.pos.data.repository.DataStoreRepository
 import com.moneromerchant.pos.data.repository.StorageRepository
+import com.moneromerchant.pos.shared.TransactionDescription
 import com.moneromerchant.pos.ui.Settings
 import java.io.File
 import javax.inject.Inject
@@ -96,6 +96,7 @@ class CompanyInformationViewModel @Inject constructor(
     }
 
     fun updateTransactionDescription(newTransactionDescription: String) {
+        transactionDescription = newTransactionDescription
         try {
             TransactionDescription.normalize(newTransactionDescription)
         } catch (error: IllegalArgumentException) {
@@ -103,7 +104,6 @@ class CompanyInformationViewModel @Inject constructor(
             return
         }
         transactionDescriptionError = null
-        transactionDescription = newTransactionDescription
         viewModelScope.launch {
             dataStoreRepository.saveTransactionDescription(newTransactionDescription)
         }

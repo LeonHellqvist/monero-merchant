@@ -2,7 +2,6 @@
 package com.moneromerchant.pos.ui.settings.companyinformation
 
 import android.net.Uri
-import com.moneromerchant.pos.shared.TransactionDescription
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -20,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.moneromerchant.pos.R
+import com.moneromerchant.pos.shared.TransactionDescription
 import com.moneromerchant.pos.ui.common.composables.CustomOutlinedTextField
 import com.moneromerchant.pos.ui.common.composables.DisplayImageFromFile
 import com.moneromerchant.pos.ui.common.composables.StyledTopAppBar

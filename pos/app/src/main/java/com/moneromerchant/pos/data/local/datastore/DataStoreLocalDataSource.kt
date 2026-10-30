@@ -18,11 +18,11 @@ import PRINTER_DPI
 import PRINTER_NBR_CHARACTERS_PER_LINE
 import PRINTER_PORT
 import PRINTER_WIDTH
-import TRANSACTION_DESCRIPTION
 import RECEIPT_FOOTER
 import REFERENCE_FIAT_CURRENCIES
 import REQUIRE_PIN_CODE_ON_APP_START
 import REQUIRE_PIN_CODE_OPEN_SETTINGS
+import TRANSACTION_DESCRIPTION
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import dataStore

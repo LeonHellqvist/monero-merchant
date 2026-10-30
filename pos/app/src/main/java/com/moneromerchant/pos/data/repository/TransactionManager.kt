@@ -1,7 +1,6 @@
 package com.moneromerchant.pos.data.repository
 
 import android.net.Uri
-import com.moneromerchant.pos.shared.TransactionDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -9,6 +8,7 @@ import com.moneromerchant.pos.data.remote.backend.model.BackendCreateTransaction
 import com.moneromerchant.pos.data.remote.backend.model.BackendTransactionStatusUpdate
 import com.moneromerchant.pos.di.ApplicationScope
 import com.moneromerchant.pos.shared.DataResult
+import com.moneromerchant.pos.shared.TransactionDescription
 import com.moneromerchant.pos.ui.PaymentSuccess
 import java.math.BigDecimal
 import java.math.RoundingMode
