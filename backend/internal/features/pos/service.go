@@ -61,7 +61,6 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 	if err != nil {
 		return 0, "", err
 	}
-	description = &normalizedDescription
 
 	transaction := &models.Transaction{
 		VendorID:              vendorID,
@@ -70,7 +69,7 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		RequiredConfirmations: requiredConfirmations,
 		Currency:              currency,
 		AmountInCurrency:      amountInCurrency,
-		Description:           description,
+		Description:           &normalizedDescription,
 	}
 
 	transactionDB, err := s.repo.CreateTransaction(ctx, transaction)
@@ -97,14 +96,9 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		callbackUrl = strings.TrimRight(callbackURLTemplate, "/") + "/receive/" + accessToken
 	}
 
-	var desc string
-	if description != nil {
-		desc = *description
-	}
-
 	req := &moneropay.ReceiveRequest{
 		Amount:      amount,
-		Description: desc,
+		Description: normalizedDescription,
 		CallbackUrl: callbackUrl,
 	}
 

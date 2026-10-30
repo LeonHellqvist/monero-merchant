@@ -15,11 +15,11 @@ func normalizeTransactionDescription(value *string) (string, error) {
 		return defaultTransactionDescription, nil
 	}
 	if !utf8.ValidString(*value) {
-		return "", errors.New("Transaction description must be valid Unicode")
+		return "", errors.New("transaction description must be valid Unicode")
 	}
 	for _, r := range *value {
 		if unicode.IsControl(r) || r == '\u2028' || r == '\u2029' {
-			return "", errors.New("Transaction description must be a single line without control characters")
+			return "", errors.New("transaction description must be a single line without control characters")
 		}
 	}
 	normalized := strings.TrimSpace(*value)
@@ -27,7 +27,7 @@ func normalizeTransactionDescription(value *string) (string, error) {
 		normalized = defaultTransactionDescription
 	}
 	if len(normalized) > maxTransactionDescriptionBytes {
-		return "", errors.New("Transaction description must be at most 128 UTF-8 bytes")
+		return "", errors.New("transaction description must be at most 128 UTF-8 bytes")
 	}
 	return normalized, nil
 }
