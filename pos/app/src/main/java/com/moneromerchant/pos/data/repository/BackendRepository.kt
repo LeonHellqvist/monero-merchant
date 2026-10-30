@@ -123,6 +123,9 @@ class BackendRepository @Inject constructor(
                         if (fetchedStatus is DataResult.Success) {
                             Log.d(logTag, "[HTTP] Received update for ID $transactionId: $fetchedStatus")
                             _currentTransactionStatus.value = fetchedStatus.data
+                            if (fetchedStatus.data.accepted) {
+                                stopObservingTransactionUpdates()
+                            }
                         } else {
                             Log.w(logTag, "[HTTP] Transaction $transactionId not found or error fetching via HTTP.")
                             if (webSocketCollectionJob?.isActive != true && _currentTransactionStatus.value != null) {
