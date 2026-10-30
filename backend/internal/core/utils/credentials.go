@@ -16,15 +16,16 @@ func ValidateUsername(name string) error {
 	return nil
 }
 
+// ValidatePassword caps passwords at 72 bytes because bcrypt ignores the rest.
 func ValidatePassword(password string) error {
-	if !utf8.ValidString(password) {
-		return errors.New("password must be valid UTF-8")
+	if strings.TrimSpace(password) != password {
+		return errors.New("password must not start or end with a space")
 	}
-	if strings.ContainsAny(password, "\t\n\v\f\r \u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff") {
-		return errors.New("password must not contain spaces or other whitespace")
+	if utf8.RuneCountInString(password) < 8 {
+		return errors.New("password must be at least 8 characters")
 	}
-	if len(password) < 8 || len(password) > 72 {
-		return errors.New("password must be 8–72 UTF-8 bytes")
+	if len(password) > 72 {
+		return errors.New("password must be at most 72 bytes")
 	}
 	return nil
 }

@@ -98,13 +98,13 @@
     <form id="create-pos-form">
       <div class="form-group">
         <label class="form-label" for="pos-name-input">POS username</label>
-        <input type="text" id="pos-name-input" class="form-input" placeholder="e.g., register_1" required minlength="3" maxlength="50" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,49}" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="pos-name-input-hint" />
+        <input type="text" id="pos-name-input" class="form-input" placeholder="e.g., register_1" required maxlength="50" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="pos-name-input-hint" />
         <p class="form-hint" id="pos-name-input-hint">3–50 characters: letters, numbers, dots, underscores or hyphens. Start with a letter or number. No spaces.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" id="pos-password-input" class="form-input" placeholder="Choose a password" required pattern="\S+" autocomplete="new-password" aria-describedby="pos-password-input-hint" />
-        <p class="form-hint" id="pos-password-input-hint">8–72 UTF-8 bytes. No spaces or other whitespace. Symbols and mixed case are allowed.</p>
+        <input type="password" id="pos-password-input" class="form-input" placeholder="Choose a password" required autocomplete="new-password" aria-describedby="pos-password-input-hint" />
+        <p class="form-hint" id="pos-password-input-hint">At least 8 characters.</p>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-close="create-pos-modal">Cancel</button>
@@ -125,7 +125,7 @@
     <form id="signup-form">
       <div class="form-group">
         <label class="form-label" for="signup-username">Store username</label>
-        <input type="text" id="signup-username" class="form-input" placeholder="e.g., coffee_shop" required minlength="3" maxlength="50" pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,49}" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="signup-username-hint" />
+        <input type="text" id="signup-username" class="form-input" placeholder="e.g., coffee_shop" required maxlength="50" autocomplete="username" autocapitalize="none" spellcheck="false" aria-describedby="signup-username-hint" />
         <p class="form-hint" id="signup-username-hint">3–50 characters: letters, numbers, dots, underscores or hyphens. Start with a letter or number. No spaces.</p>
       </div>
       <div class="form-group">
@@ -134,8 +134,8 @@
       </div>
       <div class="form-group">
         <label class="form-label">Password</label>
-        <input type="password" id="signup-password" class="form-input" placeholder="Choose a password" required pattern="\S+" autocomplete="new-password" aria-describedby="signup-password-hint" />
-        <p class="form-hint" id="signup-password-hint">8–72 UTF-8 bytes. No spaces or other whitespace. Symbols and mixed case are allowed.</p>
+        <input type="password" id="signup-password" class="form-input" placeholder="Choose a password" required autocomplete="new-password" aria-describedby="signup-password-hint" />
+        <p class="form-hint" id="signup-password-hint">At least 8 characters.</p>
       </div>
       <div class="form-group">
         <label class="form-label">Monero Payout Address</label>

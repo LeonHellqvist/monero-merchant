@@ -745,7 +745,6 @@ function renderSettings(container, headerActions) {
   newPassInput.className = 'form-input';
   newPassInput.required = true;
   newPassInput.autocomplete = 'new-password';
-  newPassInput.pattern = '\\S+';
   newPassInput.setAttribute('aria-describedby', 'new-password-hint');
   newPassInput.addEventListener('input', () => validateNewPassword(newPassInput));
   newPassGroup.appendChild(newPassLabel);
@@ -753,7 +752,7 @@ function renderSettings(container, headerActions) {
   const newPassHint = document.createElement('p');
   newPassHint.id = 'new-password-hint';
   newPassHint.className = 'form-hint';
-  newPassHint.textContent = '8–72 UTF-8 bytes. No spaces or other whitespace. Symbols and mixed case are allowed.';
+  newPassHint.textContent = 'At least 8 characters.';
   newPassGroup.appendChild(newPassHint);
   passForm.appendChild(newPassGroup);
 
@@ -765,8 +764,6 @@ function renderSettings(container, headerActions) {
 
   passForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    validateNewPassword(newPassInput);
-    if (!passForm.reportValidity()) return;
     const currentPass = $('current-password').value;
     const newPass = $('new-password').value;
 
@@ -850,39 +847,28 @@ function closeModal(id) {
   $(id).classList.remove('active');
 }
 
-function validateNewPassword(passwordInput) {
-  const password = passwordInput.value;
-  const passwordBytes = new TextEncoder().encode(password).length;
-  passwordInput.setCustomValidity(/\s/u.test(password)
-    ? 'Password must not contain spaces or other whitespace.'
-    : passwordBytes < 8 || passwordBytes > 72
-      ? 'Password must be 8–72 UTF-8 bytes.' : '');
-}
-
-function validateRegistrationCredentials(nameInput, passwordInput) {
+// Same rules as the backend's ValidateUsername and ValidatePassword.
+function validateUsername(nameInput) {
   nameInput.setCustomValidity(/^[A-Za-z0-9][A-Za-z0-9_.-]{2,49}$/.test(nameInput.value)
     ? '' : 'Use 3–50 letters, numbers, dots, underscores or hyphens, starting with a letter or number. No spaces.');
-  validateNewPassword(passwordInput);
+}
+
+function validateNewPassword(passwordInput) {
+  const password = passwordInput.value;
+  passwordInput.setCustomValidity(
+    password.trim() !== password ? 'Password must not start or end with a space.'
+    : [...password].length < 8 ? 'Password must be at least 8 characters.'
+    : new TextEncoder().encode(password).length > 72 ? 'Password must be at most 72 bytes.'
+    : '');
 }
 
 // ============ Event Listeners ============
 document.addEventListener('DOMContentLoaded', async () => {
-  for (const [formId, nameId, passwordId] of [
-    ['signup-form', 'signup-username', 'signup-password'],
-    ['create-pos-form', 'pos-name-input', 'pos-password-input']
-  ]) {
-    const nameInput = $(nameId);
-    const passwordInput = $(passwordId);
-    const validate = () => validateRegistrationCredentials(nameInput, passwordInput);
-    nameInput.addEventListener('input', validate);
-    passwordInput.addEventListener('input', validate);
-    $(formId).addEventListener('submit', (event) => {
-      validate();
-      if (!$(formId).reportValidity()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    });
+  for (const id of ['signup-username', 'pos-name-input']) {
+    $(id).addEventListener('input', (e) => validateUsername(e.target));
+  }
+  for (const id of ['signup-password', 'pos-password-input']) {
+    $(id).addEventListener('input', (e) => validateNewPassword(e.target));
   }
 
   if (loadAuth() && await refreshAccessToken()) {
