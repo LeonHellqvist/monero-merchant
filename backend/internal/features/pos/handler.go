@@ -63,7 +63,6 @@ func (h *PosHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	req.Description = &description
 
 	if req.Amount <= 0 {
 		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
@@ -84,7 +83,7 @@ func (h *PosHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 	vendorIDPtr, _ := r.Context().Value(models.ClaimsVendorIDKey).(*uint)
 	posIDPtr, _ := r.Context().Value(models.ClaimsPosIDKey).(*uint)
 
-	id, address, err := h.service.CreateTransaction(ctx, *vendorIDPtr, *posIDPtr, req.Amount, req.Description, req.AmountInCurrency, req.Currency, req.RequiredConfirmations)
+	id, address, err := h.service.CreateTransaction(ctx, *vendorIDPtr, *posIDPtr, req.Amount, description, req.AmountInCurrency, req.Currency, req.RequiredConfirmations)
 	if err != nil {
 		http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
 		return

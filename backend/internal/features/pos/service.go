@@ -52,14 +52,9 @@ type ListTransactionsResult struct {
 	Pending   []PendingTransactionSummary   `json:"pending_transactions"`
 }
 
-func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID uint, amount int64, description *string, amountInCurrency float64, currency string, requiredConfirmations int64) (id uint, address string, err error) {
+func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID uint, amount int64, description string, amountInCurrency float64, currency string, requiredConfirmations int64) (id uint, address string, err error) {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-
-	normalizedDescription, err := normalizeTransactionDescription(description)
-	if err != nil {
-		return 0, "", err
 	}
 
 	transaction := &models.Transaction{
@@ -69,7 +64,7 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		RequiredConfirmations: requiredConfirmations,
 		Currency:              currency,
 		AmountInCurrency:      amountInCurrency,
-		Description:           &normalizedDescription,
+		Description:           &description,
 	}
 
 	transactionDB, err := s.repo.CreateTransaction(ctx, transaction)
@@ -98,7 +93,7 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 
 	req := &moneropay.ReceiveRequest{
 		Amount:      amount,
-		Description: normalizedDescription,
+		Description: description,
 		CallbackUrl: callbackUrl,
 	}
 
