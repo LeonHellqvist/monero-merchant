@@ -11,7 +11,8 @@ import (
 
 	"github.com/go-chi/httprate"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
-	/* "github.com/monero-merchant/monero-merchant/backend/internal/core/utils" */)
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
+)
 
 type AuthHandler struct {
 	service *AuthService
@@ -206,8 +207,8 @@ func (h *AuthHandler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.NewPassword) < 8 || len(req.NewPassword) > 72 {
-		http.Error(w, "password must be at least 8 characters and no more than 72 characters", http.StatusBadRequest)
+	if err := utils.ValidatePassword(req.NewPassword); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
