@@ -744,8 +744,17 @@ function renderSettings(container, headerActions) {
   newPassInput.id = 'new-password';
   newPassInput.className = 'form-input';
   newPassInput.required = true;
+  newPassInput.autocomplete = 'new-password';
+  newPassInput.pattern = '\\S+';
+  newPassInput.setAttribute('aria-describedby', 'new-password-hint');
+  newPassInput.addEventListener('input', () => validateNewPassword(newPassInput));
   newPassGroup.appendChild(newPassLabel);
   newPassGroup.appendChild(newPassInput);
+  const newPassHint = document.createElement('p');
+  newPassHint.id = 'new-password-hint';
+  newPassHint.className = 'form-hint';
+  newPassHint.textContent = '8–72 UTF-8 bytes. No spaces or other whitespace. Symbols and mixed case are allowed.';
+  newPassGroup.appendChild(newPassHint);
   passForm.appendChild(newPassGroup);
 
   const passBtn = document.createElement('button');
@@ -756,6 +765,8 @@ function renderSettings(container, headerActions) {
 
   passForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    validateNewPassword(newPassInput);
+    if (!passForm.reportValidity()) return;
     const currentPass = $('current-password').value;
     const newPass = $('new-password').value;
 
@@ -839,16 +850,19 @@ function closeModal(id) {
   $(id).classList.remove('active');
 }
 
-function validateRegistrationCredentials(nameInput, passwordInput) {
-  const name = nameInput.value;
+function validateNewPassword(passwordInput) {
   const password = passwordInput.value;
   const passwordBytes = new TextEncoder().encode(password).length;
-  nameInput.setCustomValidity(/^[A-Za-z0-9][A-Za-z0-9_.-]{2,49}$/.test(name)
-    ? '' : 'Use 3–50 letters, numbers, dots, underscores or hyphens, starting with a letter or number. No spaces.');
   passwordInput.setCustomValidity(/\s/u.test(password)
     ? 'Password must not contain spaces or other whitespace.'
     : passwordBytes < 8 || passwordBytes > 72
       ? 'Password must be 8–72 UTF-8 bytes.' : '');
+}
+
+function validateRegistrationCredentials(nameInput, passwordInput) {
+  nameInput.setCustomValidity(/^[A-Za-z0-9][A-Za-z0-9_.-]{2,49}$/.test(nameInput.value)
+    ? '' : 'Use 3–50 letters, numbers, dots, underscores or hyphens, starting with a letter or number. No spaces.');
+  validateNewPassword(passwordInput);
 }
 
 // ============ Event Listeners ============
