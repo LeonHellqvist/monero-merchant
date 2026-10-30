@@ -14,6 +14,7 @@ import (
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/config"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/models"
 	"github.com/monero-merchant/monero-merchant/backend/internal/core/rpc"
+	"github.com/monero-merchant/monero-merchant/backend/internal/core/utils"
 	"github.com/monero-merchant/monero-merchant/backend/internal/thirdparty/moneropay"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -233,12 +234,11 @@ func (s *VendorService) relayPendingTransfers(ctx context.Context) bool {
 
 func (s *VendorService) CreateVendor(ctx context.Context, name string, email string, password string, inviteCode string, moneroSubaddress string) (id uint, httpErr *models.HTTPError) {
 
-	if len(name) < 3 || len(name) > 50 {
-		return 0, models.NewHTTPError(http.StatusBadRequest, "name must be at least 3 characters and no more than 50 characters")
+	if err := utils.ValidateUsername(name); err != nil {
+		return 0, models.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	if len(password) < 8 || len(password) > 72 {
-		return 0, models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 72 characters")
+	if err := utils.ValidatePassword(password); err != nil {
+		return 0, models.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	normalizedEmail, err := normalizeEmail(email)
@@ -344,12 +344,11 @@ func (s *VendorService) DeleteVendor(ctx context.Context, vendorID uint) (httpEr
 
 func (s *VendorService) CreatePos(ctx context.Context, name string, password string, vendorID uint) (httpErr *models.HTTPError) {
 
-	if len(name) < 3 || len(name) > 50 {
-		return models.NewHTTPError(http.StatusBadRequest, "name must be at least 3 characters and no more than 50 characters")
+	if err := utils.ValidateUsername(name); err != nil {
+		return models.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-
-	if len(password) < 8 || len(password) > 72 {
-		return models.NewHTTPError(http.StatusBadRequest, "password must be at least 8 characters and no more than 72 characters")
+	if err := utils.ValidatePassword(password); err != nil {
+		return models.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	nameTaken, err := s.repo.PosByNameExistsForVendor(ctx, name, vendorID)

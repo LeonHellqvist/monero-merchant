@@ -747,8 +747,16 @@ function renderSettings(container, headerActions) {
   newPassInput.id = 'new-password';
   newPassInput.className = 'form-input';
   newPassInput.required = true;
+  newPassInput.autocomplete = 'new-password';
+  newPassInput.setAttribute('aria-describedby', 'new-password-hint');
+  newPassInput.addEventListener('input', () => validateNewPassword(newPassInput));
   newPassGroup.appendChild(newPassLabel);
   newPassGroup.appendChild(newPassInput);
+  const newPassHint = document.createElement('p');
+  newPassHint.id = 'new-password-hint';
+  newPassHint.className = 'form-hint';
+  newPassHint.textContent = 'At least 8 characters.';
+  newPassGroup.appendChild(newPassHint);
   passForm.appendChild(newPassGroup);
 
   const passBtn = document.createElement('button');
@@ -842,8 +850,30 @@ function closeModal(id) {
   $(id).classList.remove('active');
 }
 
+// Same rules as the backend's ValidateUsername and ValidatePassword.
+function validateUsername(nameInput) {
+  nameInput.setCustomValidity(/^[A-Za-z0-9][A-Za-z0-9_.-]{2,49}$/.test(nameInput.value)
+    ? '' : 'Use 3–50 letters, numbers, dots, underscores or hyphens, starting with a letter or number. No spaces.');
+}
+
+function validateNewPassword(passwordInput) {
+  const password = passwordInput.value;
+  passwordInput.setCustomValidity(
+    password.trim() !== password ? 'Password must not start or end with a space.'
+    : [...password].length < 8 ? 'Password must be at least 8 characters.'
+    : new TextEncoder().encode(password).length > 72 ? 'Password must be at most 72 bytes.'
+    : '');
+}
+
 // ============ Event Listeners ============
 document.addEventListener('DOMContentLoaded', async () => {
+  for (const id of ['signup-username', 'pos-name-input']) {
+    $(id).addEventListener('input', (e) => validateUsername(e.target));
+  }
+  for (const id of ['signup-password', 'pos-password-input']) {
+    $(id).addEventListener('input', (e) => validateNewPassword(e.target));
+  }
+
   if (loadAuth() && await refreshAccessToken()) {
     showAppScreen();
   } else {
@@ -872,7 +902,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = $('signup-username').value.trim();
+    const username = $('signup-username').value;
     const email = $('signup-email').value.trim();
     const password = $('signup-password').value;
     const address = $('signup-address').value.trim();
@@ -891,7 +921,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('create-pos-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = $('pos-name-input').value.trim();
+    const name = $('pos-name-input').value;
     const password = $('pos-password-input').value;
 
     try {
