@@ -58,6 +58,13 @@ func (h *PosHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	description, err := normalizeTransactionDescription(req.Description)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Description = &description
+
 	if req.Amount <= 0 {
 		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
 		return

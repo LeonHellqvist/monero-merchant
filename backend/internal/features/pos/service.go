@@ -57,6 +57,12 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		ctx = context.Background()
 	}
 
+	normalizedDescription, err := normalizeTransactionDescription(description)
+	if err != nil {
+		return 0, "", err
+	}
+	description = &normalizedDescription
+
 	transaction := &models.Transaction{
 		VendorID:              vendorID,
 		PosID:                 posID,

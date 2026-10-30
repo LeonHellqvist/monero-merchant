@@ -3,6 +3,7 @@ package com.moneromerchant.pos.ui.settings.companyinformation
 
 import android.content.Context
 import android.net.Uri
+import com.moneromerchant.pos.shared.TransactionDescription
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -43,6 +44,11 @@ class CompanyInformationViewModel @Inject constructor(
 
     var receiptFooter: String by mutableStateOf("")
 
+    var transactionDescription: String by mutableStateOf("")
+
+    var transactionDescriptionError: String? by mutableStateOf(null)
+        private set
+
     // Load data from DataStore when ViewModel is initialized
     init {
         viewModelScope.launch {
@@ -58,6 +64,11 @@ class CompanyInformationViewModel @Inject constructor(
         viewModelScope.launch {
             dataStoreRepository.getReceiptFooter().collect { storedReceiptFooter ->
                 receiptFooter = storedReceiptFooter
+            }
+        }
+        viewModelScope.launch {
+            dataStoreRepository.getTransactionDescription().collect { storedTransactionDescription ->
+                transactionDescription = storedTransactionDescription
             }
         }
         companyLogo = storageRepository.readImage("logo.png")
@@ -81,6 +92,20 @@ class CompanyInformationViewModel @Inject constructor(
         receiptFooter = newReceiptFooter
         viewModelScope.launch {
             dataStoreRepository.saveReceiptFooter(newReceiptFooter)
+        }
+    }
+
+    fun updateTransactionDescription(newTransactionDescription: String) {
+        try {
+            TransactionDescription.normalize(newTransactionDescription)
+        } catch (error: IllegalArgumentException) {
+            transactionDescriptionError = error.message
+            return
+        }
+        transactionDescriptionError = null
+        transactionDescription = newTransactionDescription
+        viewModelScope.launch {
+            dataStoreRepository.saveTransactionDescription(newTransactionDescription)
         }
     }
 

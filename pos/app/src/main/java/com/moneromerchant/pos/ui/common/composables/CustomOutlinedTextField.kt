@@ -70,6 +70,7 @@ fun CustomOutlinedTextField(
     supportingText: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     useDarkTheme: Boolean = true,
+    isError: Boolean = false,
 ) {
     val customColorsDark = OutlinedTextFieldDefaults.colors(
         focusedLabelColor = MaterialTheme.colorScheme.onBackground,
@@ -109,6 +110,7 @@ fun CustomOutlinedTextField(
 
     OutlinedTextField(
         enabled = enabled,
+        isError = isError,
         value = value,
         onValueChange = onValueChange,
         textStyle = defaultTextStyle,

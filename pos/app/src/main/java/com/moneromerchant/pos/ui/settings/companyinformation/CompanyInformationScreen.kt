@@ -2,10 +2,13 @@
 package com.moneromerchant.pos.ui.settings.companyinformation
 
 import android.net.Uri
+import com.moneromerchant.pos.shared.TransactionDescription
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -34,6 +37,9 @@ fun CompanyInformationScreenRoot(viewModel: CompanyInformationViewModel, navCont
         updateContactInformation = viewModel::updateContactInformation,
         receiptFooter = viewModel.receiptFooter,
         updateReceiptFooter = viewModel::updateReceiptFooter,
+        transactionDescription = viewModel.transactionDescription,
+        transactionDescriptionError = viewModel.transactionDescriptionError,
+        updateTransactionDescription = viewModel::updateTransactionDescription,
         saveLogo = viewModel::saveLogo,
         deleteLogo = viewModel::deleteLogo
     )
@@ -50,6 +56,9 @@ fun CompanyInformationScreen(
     updateContactInformation: (String) -> Unit,
     receiptFooter: String,
     updateReceiptFooter: (String) -> Unit,
+    transactionDescription: String,
+    transactionDescriptionError: String?,
+    updateTransactionDescription: (String) -> Unit,
     saveLogo: (Uri) -> Unit,
     deleteLogo: () -> Unit
 ) {
@@ -76,7 +85,7 @@ fun CompanyInformationScreen(
     ) { innerPadding ->
         Column (
             verticalArrangement = Arrangement.Top,
-            modifier = Modifier.padding(innerPadding).padding(horizontal = 24.dp)
+            modifier = Modifier.padding(innerPadding).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)
         ) {
             Spacer(modifier = Modifier.height(24.dp))
             Row(
@@ -134,6 +143,18 @@ fun CompanyInformationScreen(
                 supportingText = "Shown at the end of the receipt",
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(modifier = Modifier.height(40.dp))
+            CustomOutlinedTextField(
+                value = transactionDescription,
+                onValueChange = updateTransactionDescription,
+                label = "Transaction description",
+                placeholder = TransactionDescription.DEFAULT,
+                supportingText = transactionDescriptionError
+                    ?: "Defaults to ${TransactionDescription.DEFAULT} when empty.",
+                isError = transactionDescriptionError != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

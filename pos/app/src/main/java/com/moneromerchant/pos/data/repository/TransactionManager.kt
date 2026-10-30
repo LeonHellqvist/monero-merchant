@@ -1,5 +1,7 @@
 package com.moneromerchant.pos.data.repository
 
+import android.net.Uri
+import com.moneromerchant.pos.shared.TransactionDescription
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -61,9 +63,14 @@ class TransactionManager @Inject constructor(
         val randomizedNormalizedAmount = BigDecimal.valueOf(randomizedAtomicAmount, 12)
 
         val requiredConfirmations = dataStoreRepository.getBackendConfValue().first().split("-")[0].toInt()
+        val transactionDescription = try {
+            TransactionDescription.normalize(dataStoreRepository.getTransactionDescription().first())
+        } catch (error: IllegalArgumentException) {
+            return TransactionResult.Error(error.message ?: "Invalid transaction description")
+        }
         val backendCreateTransactionRequest = BackendCreateTransactionRequest(
             randomizedAtomicAmount,
-            "MoneroMerchant",
+            transactionDescription,
             fiatAmount,
             primaryFiatCurrency,
             requiredConfirmations
@@ -88,7 +95,7 @@ class TransactionManager @Inject constructor(
                 val formattedAmount = randomizedNormalizedAmount.toPlainString()
                 TransactionResult.Success(
                     address = response.data.address,
-                    qrCodeUri = "monero:${response.data.address}?tx_amount=$formattedAmount&tx_description=MoneroMerchant",
+                    qrCodeUri = "monero:${response.data.address}?tx_amount=$formattedAmount&tx_description=${Uri.encode(transactionDescription)}",
                     transactionId = response.data.id
                 )
             }

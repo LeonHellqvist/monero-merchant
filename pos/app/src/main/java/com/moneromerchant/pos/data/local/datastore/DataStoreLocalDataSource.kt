@@ -18,6 +18,7 @@ import PRINTER_DPI
 import PRINTER_NBR_CHARACTERS_PER_LINE
 import PRINTER_PORT
 import PRINTER_WIDTH
+import TRANSACTION_DESCRIPTION
 import RECEIPT_FOOTER
 import REFERENCE_FIAT_CURRENCIES
 import REQUIRE_PIN_CODE_ON_APP_START
@@ -69,6 +70,17 @@ class DataStoreLocalDataSource @Inject constructor(
     suspend fun saveReceiptFooter(receiptFooter: String) {
         context.dataStore.edit { preferences ->
             preferences[RECEIPT_FOOTER] = receiptFooter
+        }
+    }
+
+    fun getTransactionDescription(): Flow<String> {
+        return context.dataStore.data
+            .map { preferences -> preferences[TRANSACTION_DESCRIPTION] ?: "" }
+    }
+
+    suspend fun saveTransactionDescription(transactionDescription: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TRANSACTION_DESCRIPTION] = transactionDescription
         }
     }
 
