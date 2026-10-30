@@ -52,7 +52,7 @@ type ListTransactionsResult struct {
 	Pending   []PendingTransactionSummary   `json:"pending_transactions"`
 }
 
-func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID uint, amount int64, description *string, amountInCurrency float64, currency string, requiredConfirmations int64) (id uint, address string, err error) {
+func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID uint, amount int64, description string, amountInCurrency float64, currency string, requiredConfirmations int64) (id uint, address string, err error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -64,7 +64,7 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		RequiredConfirmations: requiredConfirmations,
 		Currency:              currency,
 		AmountInCurrency:      amountInCurrency,
-		Description:           description,
+		Description:           &description,
 	}
 
 	transactionDB, err := s.repo.CreateTransaction(ctx, transaction)
@@ -91,14 +91,9 @@ func (s *PosService) CreateTransaction(ctx context.Context, vendorID uint, posID
 		callbackUrl = strings.TrimRight(callbackURLTemplate, "/") + "/receive/" + accessToken
 	}
 
-	var desc string
-	if description != nil {
-		desc = *description
-	}
-
 	req := &moneropay.ReceiveRequest{
 		Amount:      amount,
-		Description: desc,
+		Description: description,
 		CallbackUrl: callbackUrl,
 	}
 

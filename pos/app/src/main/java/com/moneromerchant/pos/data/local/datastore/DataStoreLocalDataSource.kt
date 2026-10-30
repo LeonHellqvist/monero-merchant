@@ -22,6 +22,7 @@ import RECEIPT_FOOTER
 import REFERENCE_FIAT_CURRENCIES
 import REQUIRE_PIN_CODE_ON_APP_START
 import REQUIRE_PIN_CODE_OPEN_SETTINGS
+import TRANSACTION_DESCRIPTION
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import dataStore
@@ -69,6 +70,17 @@ class DataStoreLocalDataSource @Inject constructor(
     suspend fun saveReceiptFooter(receiptFooter: String) {
         context.dataStore.edit { preferences ->
             preferences[RECEIPT_FOOTER] = receiptFooter
+        }
+    }
+
+    fun getTransactionDescription(): Flow<String> {
+        return context.dataStore.data
+            .map { preferences -> preferences[TRANSACTION_DESCRIPTION] ?: "" }
+    }
+
+    suspend fun saveTransactionDescription(transactionDescription: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TRANSACTION_DESCRIPTION] = transactionDescription
         }
     }
 

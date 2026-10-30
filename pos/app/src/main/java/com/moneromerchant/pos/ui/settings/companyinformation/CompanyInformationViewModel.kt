@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import com.moneromerchant.pos.data.repository.DataStoreRepository
 import com.moneromerchant.pos.data.repository.StorageRepository
+import com.moneromerchant.pos.shared.TransactionDescription
 import com.moneromerchant.pos.ui.Settings
 import java.io.File
 import javax.inject.Inject
@@ -43,6 +44,11 @@ class CompanyInformationViewModel @Inject constructor(
 
     var receiptFooter: String by mutableStateOf("")
 
+    var transactionDescription: String by mutableStateOf("")
+
+    var transactionDescriptionError: String? by mutableStateOf(null)
+        private set
+
     // Load data from DataStore when ViewModel is initialized
     init {
         viewModelScope.launch {
@@ -58,6 +64,11 @@ class CompanyInformationViewModel @Inject constructor(
         viewModelScope.launch {
             dataStoreRepository.getReceiptFooter().collect { storedReceiptFooter ->
                 receiptFooter = storedReceiptFooter
+            }
+        }
+        viewModelScope.launch {
+            dataStoreRepository.getTransactionDescription().collect { storedTransactionDescription ->
+                transactionDescription = storedTransactionDescription
             }
         }
         companyLogo = storageRepository.readImage("logo.png")
@@ -81,6 +92,20 @@ class CompanyInformationViewModel @Inject constructor(
         receiptFooter = newReceiptFooter
         viewModelScope.launch {
             dataStoreRepository.saveReceiptFooter(newReceiptFooter)
+        }
+    }
+
+    fun updateTransactionDescription(newTransactionDescription: String) {
+        transactionDescription = newTransactionDescription
+        try {
+            TransactionDescription.normalize(newTransactionDescription)
+        } catch (error: IllegalArgumentException) {
+            transactionDescriptionError = error.message
+            return
+        }
+        transactionDescriptionError = null
+        viewModelScope.launch {
+            dataStoreRepository.saveTransactionDescription(newTransactionDescription)
         }
     }
 
