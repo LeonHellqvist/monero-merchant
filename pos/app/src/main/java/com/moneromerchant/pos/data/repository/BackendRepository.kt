@@ -110,7 +110,7 @@ class BackendRepository @Inject constructor(
 
                     // Crucial check: are we still supposed to be polling for this transactionId?
                     if (this@BackendRepository.currentTransactionId != transactionId) {
-                        Log.d(logTag, "[HTTP] currentTransactionId changed from $transactionId to ${this@BackendRepository.currentTransactionId}. Stopping this polling loop.")
+                        Log.d(logTag, "[HTTP] currentTransactionId changed from $transactionId to $currentTransactionId. Stopping this polling loop.")
                         break // Exit loop if the repository is now observing a different ID
                     }
 
